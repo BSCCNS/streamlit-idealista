@@ -1,0 +1,28 @@
+name: streamlit-idealista
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10.12
+  - black
+  - flake8
+  - isort
+  - pip
+  - typer
+  - loguru
+  - tqdm
+  - folium
+  - streamlit
+  - shapely
+  - pyproj
+  - numpy
+  - pandas
+  - geopandas
+  - prophet
+  - plotly
+  - jsonschema  
+  - streamlit-folium
+  - pip:
+    - python-dotenv
+    - mkdocs
+    - -e .
+    - pathlib
