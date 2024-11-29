@@ -6,7 +6,7 @@ from streamlit_folium import st_folium
 from pathlib import Path
 from shapely.geometry import GeometryCollection, shape
 from shapely.ops import transform
-from typing import Union,Optional,List
+from typing import Union,Optional,List, Tuple
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -17,6 +17,7 @@ from prophet import Prophet
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pyproj import Transformer
+import datetime
 
 def transform_geometry(geometry):
     """
@@ -160,6 +161,7 @@ def plot_timeseries(df: pd.DataFrame,
                     interventions_gdf: gpd.GeoDataFrame,
                     censustract_list: Union[List[str], None] = None,
                     include_trends: bool=True,
+                    price_type: str = 'both'
                     ) -> go.Figure:
     """
     Plot the timeseries of prices (rent, sale) for the given census tracts.
@@ -174,6 +176,7 @@ def plot_timeseries(df: pd.DataFrame,
 
     Returns:
       go.Figure: The figure.
+      
     """
     
     interventions_dict = {'Urbanització c. Almogàvers (Badajoz -Roc Boronat).': 'Almogàvers',
@@ -195,7 +198,11 @@ def plot_timeseries(df: pd.DataFrame,
     if df is None:
         raise ValueError("funtion get_timeseries_of_census_tracts returned None")
 
+
+
     fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+
     fig.add_trace(
         go.Scatter(x=df["sale"].index, y=df["sale"].values, name="average_buy"),
         secondary_y=False,
@@ -271,6 +278,11 @@ def plot_timeseries(df: pd.DataFrame,
                 opacity=0.25,
                 line_width=0
             )
+                # Price type filtering
+    if price_type == 'sale':
+        fig.data = [trace for trace in fig.data if 'buy' in trace.name]
+    elif price_type == 'rent':
+        fig.data = [trace for trace in fig.data if 'rent' in trace.name]
 
     fig.update_layout(
         title_text="Average Rent/Buy prices for all the Census tracts"
