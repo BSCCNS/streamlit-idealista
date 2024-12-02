@@ -107,7 +107,7 @@ st.title("Map Drawing and Geometry Capture")
 
 left, right = st.columns([1,1])  # You can adjust these numbers to your preference
 interventions_gdf = interventions_gdf.to_crs("EPSG:4326")
-print(interventions_gdf[['TITOL_WO', 'ESTAT']].isnull().sum())
+#print(interventions_gdf[['TITOL_WO', 'ESTAT']].isnull().sum())
 with left:
     st.subheader("Map")
 
@@ -204,14 +204,15 @@ with right:
                 print("No matching interventions found for the selected geometries.")
                 my_censustracts = []  # No impacted census tracts
             else:
-                print(filtered_df.head())
+                #print(filtered_df.head())
                 my_censustracts = fc.get_impacted_censustracts(filtered_df["geometry"].union_all(), gdf_ine) 
-                print(my_censustracts) # Combine geometries
+                #print(my_censustracts) # Combine geometries
                 chart = fc.plot_timeseries(
                     processed_df, 
                     interventions_gdf, 
                     my_censustracts,
-                    price_type=price_type.lower()
+                    price_type=price_type.lower(),
+                    district = True
                 )
                 if chart is not None:
                     st.plotly_chart(chart, use_container_width=True)
@@ -223,7 +224,8 @@ with right:
                 processed_df, 
                 interventions_gdf, 
                 my_censustracts,
-                price_type=price_type.lower()
+                price_type=price_type.lower(),
+                district = True
             )
 
             # Display the chart if available

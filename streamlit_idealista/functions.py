@@ -96,7 +96,7 @@ def get_timeseries_of_census_tracts(df: pd.DataFrame, censustract_list: Optional
         .pivot(index="PERIOD", columns="ADOPERATION", values="UNITPRICE_ASKING")  # Pivot on 'ADOPERATION'
     )
 
-    print("Resultado dentro de get_timeseries_of_census_tracts:", aggregated_df)
+    #print("Resultado dentro de get_timeseries_of_census_tracts:", aggregated_df)
 
     return aggregated_df
 
@@ -162,7 +162,8 @@ def plot_timeseries(df: pd.DataFrame,
                     interventions_gdf: gpd.GeoDataFrame,
                     censustract_list: Union[List[str], None] = None,
                     include_trends: bool=True,
-                    price_type: str = 'both'
+                    price_type: str = 'both',
+                    district: bool =True
                     ) -> go.Figure:
     """
     Plot the timeseries of prices (rent, sale) for the given census tracts.
@@ -192,11 +193,11 @@ def plot_timeseries(df: pd.DataFrame,
                       'Eixos Verds LOT 1: ': 'LOT 1',
                       'Eix verd Sant Antoni': 'Sant Antoni'}
 
+    df['district'] = df['CENSUSTRACT'].astype(str).str[4:6]
+    df_census = get_timeseries_of_census_tracts(df, censustract_list)
 
-    df = get_timeseries_of_census_tracts(df, censustract_list)
-
-
-    if df is None:
+    #print("df_census", df_census)
+    if df_census is None:
         raise ValueError("funtion get_timeseries_of_census_tracts returned None")
 
 
@@ -205,26 +206,43 @@ def plot_timeseries(df: pd.DataFrame,
 
 
     fig.add_trace(
-        go.Scatter(x=df["sale"].index, y=df["sale"].values, name="average_buy"),
+        go.Scatter(x=df_census["sale"].index, y=df_census["sale"].values, name="Average Buy"),
         secondary_y=False,
     )
 
     fig.add_trace(
-        go.Scatter(x=df["rent"].index, y=df["rent"].values, name="average_rent"),
+        go.Scatter(x=df_census["rent"].index, y=df_census["rent"].values, name="Average Rent"),
         secondary_y=True,
     )
 
     if include_trends:
-        trend_sale = get_trend_of_timeseries(df["sale"])
-        trend_rent = get_trend_of_timeseries(df["rent"])
+        trend_sale = get_trend_of_timeseries(df_census["sale"])
+        trend_rent = get_trend_of_timeseries(df_census["rent"])
+
         fig.add_trace(
-            go.Scatter(x=trend_sale.index, y=trend_sale.values, name="trend_buy"),
+            go.Scatter(x=trend_sale.index, y=trend_sale.values, name="Trend Buy"),
             secondary_y=False,
         )
         fig.add_trace(
-            go.Scatter(x=trend_rent.index, y=trend_rent.values, name="trend_rent"),
+            go.Scatter(x=trend_rent.index, y=trend_rent.values, name="Trend Rent"),
             secondary_y=True,
         )
+        if district == True:
+                
+            df_districts = df[df.district.isin(interventions_gdf.DISTRITO)]
+            df_districts_list = get_timeseries_of_census_tracts(df_districts, censustract_list)
+
+            trend_sale_district = get_trend_of_timeseries(df_districts_list["sale"])
+            trend_rent_district = get_trend_of_timeseries(df_districts_list["rent"])
+            fig.add_trace(
+                go.Scatter(x=trend_sale_district.index, y=trend_sale_district.values, name="District buy",line=dict(color='#C1A2CA')),
+                secondary_y=False,
+            )
+            fig.add_trace(
+                go.Scatter(x=trend_rent_district.index, y=trend_rent_district.values, name="District rent", line=dict(color='#C1A2CA')),
+                secondary_y=True,
+            )
+
 
     # Ensure CENSUSTRACT values in interventions_gdf are strings with 10 digits
     interventions_gdf["CENSUSTRACT"] = interventions_gdf["CENSUSTRACT"].astype(int).astype(str).str.zfill(10)
@@ -233,9 +251,9 @@ def plot_timeseries(df: pd.DataFrame,
     censustract_list = [str(ct).zfill(10) for ct in censustract_list]
 
     # Debugging print
-    print("CENSUSTRACT values in interventions_gdf:", interventions_gdf["CENSUSTRACT"].unique())
-    print("Censustract list provided:", censustract_list)
-    print(interventions_gdf["CENSUSTRACT"].values)
+    #print("CENSUSTRACT values in interventions_gdf:", interventions_gdf["CENSUSTRACT"].unique())
+    #print("Censustract list provided:", censustract_list)
+    #print(interventions_gdf["CENSUSTRACT"].values)
 
     if any(census_tract in interventions_gdf["CENSUSTRACT"].values for census_tract in censustract_list):
         # Prepare data for merging intervals
@@ -252,11 +270,11 @@ def plot_timeseries(df: pd.DataFrame,
 
         # Now proceed with only the valid census tracts
         intervals = []
-        print(interventions_gdf.set_index("CENSUSTRACT").loc[valid_censustracts])
+        #print(interventions_gdf.set_index("CENSUSTRACT").loc[valid_censustracts])
 
         for row, intervention in interventions_gdf.set_index("CENSUSTRACT").loc[valid_censustracts].iterrows():
             # Debugging print
-            print(f"Processing intervention: {intervention}")
+            #print(f"Processing intervention: {intervention}")
 
             data_inici = pd.to_datetime(intervention["DATA_INICI"].strftime('%Y-%m-%d'))
             data_fi = pd.to_datetime(intervention["DATA_FI_REAL"].strftime('%Y-%m-%d'))

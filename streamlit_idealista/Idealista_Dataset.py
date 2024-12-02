@@ -29,7 +29,7 @@ from streamlit_idealista.config import (
     PROJ_ROOT,
 )
 
-im = Image.open(PROJ_ROOT / "streamlit_idealista/assets/favicon.png")
+im = Image.open("assets/favicon.png")
 
 st.set_page_config(
 
@@ -186,7 +186,8 @@ with right:
             processed_df,
             interventions_gdf,
             my_censustracts,
-            price_type=price_type.lower()
+            price_type=price_type.lower(),
+            district = False
         )
         if chart is not None:
             st.plotly_chart(chart, use_container_width=True)
