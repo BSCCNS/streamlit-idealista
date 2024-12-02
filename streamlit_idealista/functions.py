@@ -1,23 +1,24 @@
 
-import streamlit as st
-import folium as folium
-from folium.plugins import Draw
-from streamlit_folium import st_folium
+import datetime
+import json
 from pathlib import Path
-from shapely.geometry import GeometryCollection, shape
-from shapely.ops import transform
-from typing import Union,Optional,List, Tuple
+from typing import List, Optional, Tuple, Union
+
+import folium as folium
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import json
-import geopandas as gpd
-import shapely
-from prophet import Prophet
 import plotly.graph_objects as go
+import shapely
+import streamlit as st
+from folium.plugins import Draw
 from plotly.subplots import make_subplots
+from prophet import Prophet
 from pyproj import Transformer
-import datetime
+from shapely.geometry import GeometryCollection, shape
+from shapely.ops import transform
+from streamlit_folium import st_folium
+
 
 def transform_geometry(geometry):
     """
@@ -94,7 +95,7 @@ def get_timeseries_of_census_tracts(df: pd.DataFrame, censustract_list: Optional
         .reset_index()  # Reset index to flatten the dataframe
         .pivot(index="PERIOD", columns="ADOPERATION", values="UNITPRICE_ASKING")  # Pivot on 'ADOPERATION'
     )
-    
+
     print("Resultado dentro de get_timeseries_of_census_tracts:", aggregated_df)
 
     return aggregated_df
@@ -176,9 +177,9 @@ def plot_timeseries(df: pd.DataFrame,
 
     Returns:
       go.Figure: The figure.
-      
+
     """
-    
+
     interventions_dict = {'Urbanització c. Almogàvers (Badajoz -Roc Boronat).': 'Almogàvers',
                       'Superilla de Poblenou': 'Superilla Poblenou',
                       'Eixos Verds Eixample ': 'Eixample',
@@ -190,10 +191,10 @@ def plot_timeseries(df: pd.DataFrame,
                       'Eixos Verds LOT 2: Borrell (Aragó - Diputació) + Consell de Cent (Calàbria - Urgell) + Cruïlla': 'LOT 2',
                       'Eixos Verds LOT 1: ': 'LOT 1',
                       'Eix verd Sant Antoni': 'Sant Antoni'}
-    
+
 
     df = get_timeseries_of_census_tracts(df, censustract_list)
-    
+
 
     if df is None:
         raise ValueError("funtion get_timeseries_of_census_tracts returned None")
@@ -238,7 +239,7 @@ def plot_timeseries(df: pd.DataFrame,
 
     if any(census_tract in interventions_gdf["CENSUSTRACT"].values for census_tract in censustract_list):
         # Prepare data for merging intervals
-        
+
         intervals = []
         # Ensure CENSUSTRACT values in interventions_gdf are strings with 10 digits
         interventions_gdf["CENSUSTRACT"] = interventions_gdf["CENSUSTRACT"].astype(str).str.zfill(10)
