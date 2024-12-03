@@ -111,6 +111,12 @@ interventions_gdf = interventions_gdf.to_crs("EPSG:4326")
 with left:
     st.subheader("Map")
 
+    geometry_selection = st.multiselect(
+        "Select Urban Intervention", 
+        options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
+        help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
+    )
+
     # Create the base map
     m = folium.Map(location=[41.40463, 2.17924], zoom_start=13, tiles="cartodbpositron")
 
@@ -118,7 +124,10 @@ with left:
     geojson_layer = folium.FeatureGroup(name="Show Urban Interventions")
 
     # Add geometries to the layer
-    for _, row in interventions_gdf.iterrows():
+    filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
+
+    #for _, row in interventions_gdf.iterrows():
+    for _, row in filtered_interventions_gdf.iterrows():
         folium.GeoJson(
             row["geometry"],
             name=row["TITOL_WO"],
@@ -176,16 +185,13 @@ with left:
         my_censustracts = []
 
     
-
-
-
 with right:
 
-    geometry_selection = st.multiselect(
-        "Select Urban Intervention", 
-        options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
-        help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
-    )
+    # geometry_selection = st.multiselect(
+    #     "Select Urban Intervention", 
+    #     options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
+    #     help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
+    # )
 
     # Price type filter
     price_type = st.radio("Price Type", ['Both', 'Sale', 'Rent'], horizontal=True)
@@ -209,10 +215,12 @@ with right:
                 #print(my_censustracts) # Combine geometries
                 chart = fc.plot_timeseries(
                     processed_df, 
-                    interventions_gdf, 
+                    #interventions_gdf, 
+                    # TA-change
+                    filtered_df,
                     my_censustracts,
                     price_type=price_type.lower(),
-                    district = True
+                    district = False #True
                 )
                 if chart is not None:
                     st.plotly_chart(chart, use_container_width=True)
@@ -225,7 +233,7 @@ with right:
                 interventions_gdf, 
                 my_censustracts,
                 price_type=price_type.lower(),
-                district = True
+                district = False #True
             )
 
             # Display the chart if available

@@ -206,12 +206,13 @@ def plot_timeseries(df: pd.DataFrame,
 
 
     fig.add_trace(
-        go.Scatter(x=df_census["sale"].index, y=df_census["sale"].values, name="Average Buy"),
+        # TA-change
+        go.Scatter(x=df_census["sale"].index, y=df_census["sale"].values, name="Average buy"),
         secondary_y=False,
     )
 
     fig.add_trace(
-        go.Scatter(x=df_census["rent"].index, y=df_census["rent"].values, name="Average Rent"),
+        go.Scatter(x=df_census["rent"].index, y=df_census["rent"].values, name="Average rent"),
         secondary_y=True,
     )
 
@@ -220,15 +221,15 @@ def plot_timeseries(df: pd.DataFrame,
         trend_rent = get_trend_of_timeseries(df_census["rent"])
 
         fig.add_trace(
-            go.Scatter(x=trend_sale.index, y=trend_sale.values, name="Trend Buy"),
+            go.Scatter(x=trend_sale.index, y=trend_sale.values, name="Trend buy"),
             secondary_y=False,
         )
         fig.add_trace(
-            go.Scatter(x=trend_rent.index, y=trend_rent.values, name="Trend Rent"),
+            go.Scatter(x=trend_rent.index, y=trend_rent.values, name="Trend rent"),
             secondary_y=True,
         )
         if district == True:
-                
+    
             df_districts = df[df.district.isin(interventions_gdf.DISTRITO)]
             df_districts_list = get_timeseries_of_census_tracts(df_districts, censustract_list)
 
@@ -298,10 +299,12 @@ def plot_timeseries(df: pd.DataFrame,
                 line_width=0
             )
                 # Price type filtering
+
+    #TA-change
     if price_type == 'sale':
-        fig.data = [trace for trace in fig.data if 'buy' in trace.name]
+        fig.data = [trace for trace in fig.data if "buy" in trace.name]
     elif price_type == 'rent':
-        fig.data = [trace for trace in fig.data if 'rent' in trace.name]
+        fig.data = [trace for trace in fig.data if "rent" in trace.name]
 
     fig.update_layout(
         title_text="Average Rent/Buy prices for all the Census tracts"
