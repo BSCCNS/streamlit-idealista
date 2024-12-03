@@ -10,4 +10,5 @@ pandas
 geopandas
 plotly
 prophet
+python-dotenv
 -e .
