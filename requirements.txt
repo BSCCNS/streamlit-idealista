@@ -1,0 +1,12 @@
+typer
+loguru
+tqdm
+streamlit
+streamlit-folium
+folium
+shapely
+pyproj
+pandas
+geopandas
+plotly
+-e .
