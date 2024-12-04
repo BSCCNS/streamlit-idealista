@@ -220,7 +220,7 @@ with right:
                     filtered_df,
                     my_censustracts,
                     price_type=price_type.lower(),
-                    district = False #True
+                    district = True #True
                 )
                 if chart is not None:
                     st.plotly_chart(chart, use_container_width=True)
@@ -233,7 +233,7 @@ with right:
                 interventions_gdf, 
                 my_censustracts,
                 price_type=price_type.lower(),
-                district = False #True
+                district = True #True
             )
 
             # Display the chart if available
