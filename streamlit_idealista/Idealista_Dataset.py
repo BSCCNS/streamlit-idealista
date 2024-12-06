@@ -81,7 +81,7 @@ dtypes_coupled_dict = load_dtypes(INPUT_DTYPES_COUPLED_JSON_PATH)
 # load data
 @st.cache_data
 def load_main_data(main_data_path: Path) -> pd.DataFrame:
-    return pd.read_csv( INPUT_DATA_PATH, sep = ';', dtype=dtypes_coupled_dict)
+    return pd.read_csv(main_data_path, sep = ';', dtype=dtypes_coupled_dict)
 df = load_main_data(INPUT_DATA_PATH)
 
 @st.cache_data
@@ -98,7 +98,7 @@ operation_types_df = load_operation_types(INPUT_OPERATION_TYPES_PATH)
 
 @st.cache_data
 def load_typology_types(typology_types_path: Path) -> pd.DataFrame:
-    return pd.read_csv( INPUT_TYPOLOGY_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
+    return pd.read_csv( typology_types_path, sep=";", dtype=dtypes_coupled_dict)
 typology_types_df = load_typology_types(INPUT_TYPOLOGY_TYPES_PATH)
 
 @st.cache_data
