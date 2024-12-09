@@ -61,6 +61,30 @@ def get_impacted_censustracts(geometries: Union[shapely.geometry.GeometryCollect
     mask = ine_gdf['geometry'].intersects(geometries)
     return ine_gdf[mask]['CENSUSTRACT'].unique().tolist()
 
+
+def filter_data_per_district(df: pd.DataFrame, gdf: gpd.GeoDataFrame) -> pd.DataFrame:
+
+    """
+    Filter idealista df to the censustracts of the districts contained in the given geopandas
+    (e.g. for interventions_gdf)
+
+    Args:
+      df (pd.DataFrame): The dataframe containing idealista data.
+      gdf (gpd.GeoDataFrame): GeoPandas with geometry 
+
+    Returns:
+      pd.DataFrame: filter dataframe 
+    """
+
+    df['district'] = df['CENSUSTRACT'].astype(str).str[4:6]
+    df['munucipality'] = df['CENSUSTRACT'].astype(str).str[0:4]
+
+    c1 = df.district.isin(gdf.DISTRITO)
+    c2 = df.munucipality.isin(gdf['PROVMUN'].astype(int).astype(str))
+    df_district = df[c1 & c2]
+
+    return df_district
+
 def get_timeseries_of_census_tracts(df: pd.DataFrame, censustract_list: Optional[List[str]] = None, operation: str = "mean") -> Optional[pd.DataFrame]:
     """
     Get the timeseries of prices (rent, sale) for the given census tracts.
@@ -193,8 +217,8 @@ def plot_timeseries(df: pd.DataFrame,
                       'Eixos Verds LOT 1: ': 'LOT 1',
                       'Eix verd Sant Antoni': 'Sant Antoni'}
 
-    df['district'] = df['CENSUSTRACT'].astype(str).str[4:6]
-    df['munucipality'] = df['CENSUSTRACT'].astype(str).str[0:4]
+    #df['district'] = df['CENSUSTRACT'].astype(str).str[4:6]
+    #df['munucipality'] = df['CENSUSTRACT'].astype(str).str[0:4]
 
     df_census = get_timeseries_of_census_tracts(df, censustract_list)
 
@@ -233,9 +257,11 @@ def plot_timeseries(df: pd.DataFrame,
         if district == True:
     
             #df_districts = df[df.district.isin(interventions_gdf.DISTRITO)]
-            c1 = df.district.isin(interventions_gdf.DISTRITO)
-            c2 = df.munucipality.isin(interventions_gdf['PROVMUN'].astype(int).astype(str))
-            df_districts = df[c1 & c2]
+            #c1 = df.district.isin(interventions_gdf.DISTRITO)
+            #c2 = df.munucipality.isin(interventions_gdf['PROVMUN'].astype(int).astype(str))
+            #df_districts = df[c1 & c2]
+
+            df_districts = filter_data_per_district(df, interventions_gdf)
 
             df_districts_list = get_timeseries_of_census_tracts(df_districts, censustract_list)
 

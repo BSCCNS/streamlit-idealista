@@ -200,13 +200,15 @@ with left:
     ).add_to(m)
 
     #show district as control group
-    processed_df['district'] = processed_df['CENSUSTRACT'].astype(str).str[4:6]
-    processed_df['munucipality'] = processed_df['CENSUSTRACT'].astype(str).str[0:4]
+    # processed_df['district'] = processed_df['CENSUSTRACT'].astype(str).str[4:6]
+    # processed_df['munucipality'] = processed_df['CENSUSTRACT'].astype(str).str[0:4]
 
-    c1 = processed_df.district.isin(filtered_interventions_gdf.DISTRITO)
-    c2 = processed_df.munucipality.isin(filtered_interventions_gdf['PROVMUN'].astype(int).astype(str))
+    # c1 = processed_df.district.isin(filtered_interventions_gdf.DISTRITO)
+    # c2 = processed_df.munucipality.isin(filtered_interventions_gdf['PROVMUN'].astype(int).astype(str))
 
-    df_districts = processed_df[c1 & c2]
+    # df_districts = processed_df[c1 & c2]
+
+    df_districts = fc.filter_data_per_district(processed_df, filtered_interventions_gdf)
 
     district_gdf = gdf_ine[gdf_ine.CENSUSTRACT.isin(df_districts.CENSUSTRACT)].to_crs('EPSG:4326')
 
