@@ -131,44 +131,6 @@ def process_df(df: pd.DataFrame) -> pd.DataFrame:
     )
 processed_df = process_df(df)
 
-
-# # load data
-# df = pd.read_csv( INPUT_DATA_PATH, sep = ';', dtype=dtypes_coupled_dict)
-# gdf_ine = gpd.read_file(INPUT_INE_CENSUSTRACT_GEOJSON)
-# gdf_ine['CENSUSTRACT'] = gdf_ine['CENSUSTRACT'].astype(int).astype(str)
-
-# operation_types_df = pd.read_csv( INPUT_OPERATION_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
-# typology_types_df = pd.read_csv( INPUT_TYPOLOGY_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
-
-# interventions_gdf =  gpd.read_file( INPUT_SUPERILLES_INTERVENTIONS_GEOJSON)
-
-# #interventions_gdf =  interventions_gdf.to_crs("EPSG:4326")
-
-# processed_df = (
-#     df
-#     .astype({'ADOPERATIONID': 'int',
-#             'ADTYPOLOGYID': 'int'
-#             })
-#     .join(operation_types_df.set_index('ID'), on='ADOPERATIONID', how="left", validate="m:1")
-#     .rename(columns={
-#         'SHORTNAME': 'ADOPERATION',
-#                     }
-#             )
-#     .astype({'ADOPERATION': 'category',
-#             'ADOPERATIONID': 'category'
-#             })
-#     .drop(columns=("DESCRIPTION"))
-#     .join(typology_types_df.set_index('ID'), on='ADTYPOLOGYID', how="left", validate="m:1")
-#     .rename(columns={
-#         'SHORTNAME': 'ADTYPOLOGY',
-#                     }
-#             )
-#     .astype({'ADTYPOLOGY': 'category',
-#             'ADTYPOLOGYID': 'category'
-#             })
-#     .drop(columns=("DESCRIPTION"))
-#   )
-#st.write(df)
 # Streamlit App Logic
 st.title("Map Drawing and Geometry Capture")
 
