@@ -194,6 +194,8 @@ def plot_timeseries(df: pd.DataFrame,
                       'Eix verd Sant Antoni': 'Sant Antoni'}
 
     df['district'] = df['CENSUSTRACT'].astype(str).str[4:6]
+    df['munucipality'] = df['CENSUSTRACT'].astype(str).str[0:4]
+
     df_census = get_timeseries_of_census_tracts(df, censustract_list)
 
     #print("df_census", df_census)
@@ -230,7 +232,11 @@ def plot_timeseries(df: pd.DataFrame,
         )
         if district == True:
     
-            df_districts = df[df.district.isin(interventions_gdf.DISTRITO)]
+            #df_districts = df[df.district.isin(interventions_gdf.DISTRITO)]
+            c1 = df.district.isin(interventions_gdf.DISTRITO)
+            c2 = df.munucipality.isin(interventions_gdf['PROVMUN'].astype(int).astype(str))
+            df_districts = df[c1 & c2]
+
             df_districts_list = get_timeseries_of_census_tracts(df_districts, censustract_list)
 
             trend_sale_district = get_trend_of_timeseries(df_districts_list["sale"])

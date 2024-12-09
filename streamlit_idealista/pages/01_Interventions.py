@@ -177,9 +177,6 @@ left, right = st.columns([1,1])  # You can adjust these numbers to your preferen
 
 interventions_gdf = interventions_gdf.to_crs('EPSG:4326')
 
-print(interventions_gdf.crs)
-
-print(interventions_gdf['geometry'][0:10])
 #print('problem above')
 #print(interventions_gdf[['TITOL_WO', 'ESTAT']].isnull().sum())
 
@@ -239,6 +236,29 @@ with left:
         title_cancel="Exit me",
         force_separate_button=True,
     ).add_to(m)
+
+    #show district as control group
+    processed_df['district'] = processed_df['CENSUSTRACT'].astype(str).str[4:6]
+    processed_df['munucipality'] = processed_df['CENSUSTRACT'].astype(str).str[0:4]
+
+    c1 = processed_df.district.isin(filtered_interventions_gdf.DISTRITO)
+    c2 = processed_df.munucipality.isin(filtered_interventions_gdf['PROVMUN'].astype(int).astype(str))
+
+    df_districts = processed_df[c1 & c2]
+
+    district_gdf = gdf_ine[gdf_ine.CENSUSTRACT.isin(df_districts.CENSUSTRACT)].to_crs('EPSG:4326')
+
+    for _, row in district_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            style_function=lambda x: {
+                "fillColor": "red",
+                "color": "red",
+                "weight": 1,
+                "fillOpacity": 0.4,
+            },
+        ).add_to(geojson_layer)
+
     # Display the map in the Streamlit app
     output = st_folium(m, width=600, height=500)
 
