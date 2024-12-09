@@ -20,6 +20,11 @@ from plotly.subplots import make_subplots
 from pyproj import Transformer
 from PIL import Image
 
+# Added this to avoid error when converting to eps 4326. Following
+# https://stackoverflow.com/questions/78050786/why-does-geopandas-to-crs-give-inf-inf-the-first-time-and-correct-resul
+import pyproj
+pyproj.network.set_network_enabled(False)
+
 im = Image.open("assets/favicon.png")
    
 st.set_page_config(    
@@ -63,53 +68,129 @@ This dashboard allows users to explore data from the **Idealista dataset** effec
 This tool is designed to aid in decision-making and provide insights into the real estate landscape in the region.
 """)
 
-
-with open(INPUT_DTYPES_COUPLED_JSON_PATH, 'r') as f:
-    dtypes_coupled_dict = json.load(f)
-
 # load data
-df = pd.read_csv( INPUT_DATA_PATH, sep = ';', dtype=dtypes_coupled_dict)
-gdf_ine = gpd.read_file(INPUT_INE_CENSUSTRACT_GEOJSON)
-gdf_ine['CENSUSTRACT'] = gdf_ine['CENSUSTRACT'].astype(int).astype(str)
+@st.cache_data
+def load_dtypes(dtypes_path: Path) -> dict:
+    with open(dtypes_path, 'r') as f:
+        return json.load(f)
+dtypes_coupled_dict = load_dtypes(INPUT_DTYPES_COUPLED_JSON_PATH)
 
-operation_types_df = pd.read_csv( INPUT_OPERATION_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
-typology_types_df = pd.read_csv( INPUT_TYPOLOGY_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
+@st.cache_data
+def load_main_data(main_data_path: Path) -> pd.DataFrame:
+    return pd.read_csv( main_data_path, sep = ';', dtype=dtypes_coupled_dict)
+df = load_main_data(INPUT_DATA_PATH)
 
-interventions_gdf =  gpd.read_file( INPUT_SUPERILLES_INTERVENTIONS_GEOJSON)
+@st.cache_data
+def load_censustract_geojson(censustract_geojson_path: Path) -> gpd.GeoDataFrame:
+    gdf_ine = gpd.read_file(censustract_geojson_path)
+    gdf_ine['CENSUSTRACT'] = gdf_ine['CENSUSTRACT'].astype(int).astype(str)
+    return gdf_ine
+gdf_ine = load_censustract_geojson(INPUT_INE_CENSUSTRACT_GEOJSON)
 
-processed_df = (
-    df
-    .astype({'ADOPERATIONID': 'int',
-            'ADTYPOLOGYID': 'int'
-            })
-    .join(operation_types_df.set_index('ID'), on='ADOPERATIONID', how="left", validate="m:1")
-    .rename(columns={
-        'SHORTNAME': 'ADOPERATION',
-                    }
-            )
-    .astype({'ADOPERATION': 'category',
-            'ADOPERATIONID': 'category'
-            })
-    .drop(columns=("DESCRIPTION"))
-    .join(typology_types_df.set_index('ID'), on='ADTYPOLOGYID', how="left", validate="m:1")
-    .rename(columns={
-        'SHORTNAME': 'ADTYPOLOGY',
-                    }
-            )
-    .astype({'ADTYPOLOGY': 'category',
-            'ADTYPOLOGYID': 'category'
-            })
-    .drop(columns=("DESCRIPTION"))
-  )
+@st.cache_data
+def load_operation_types(operation_types_path: Path) -> pd.DataFrame:
+    return pd.read_csv(operation_types_path, sep=";", dtype=dtypes_coupled_dict)
+operation_types_df = load_operation_types(INPUT_OPERATION_TYPES_PATH)
+
+@st.cache_data
+def load_typology_types(typology_types_path: Path) -> pd.DataFrame:
+    return pd.read_csv( typology_types_path, sep=";", dtype=dtypes_coupled_dict)
+typology_types_df = load_typology_types(INPUT_TYPOLOGY_TYPES_PATH)
+
+@st.cache_data
+def load_interventions(interventions_path: Path) -> gpd.GeoDataFrame:
+    return gpd.read_file(interventions_path)
+interventions_gdf =  load_interventions(INPUT_SUPERILLES_INTERVENTIONS_GEOJSON)
+
+@st.cache_data
+def process_df(df: pd.DataFrame) -> pd.DataFrame:
+    copy_df = df.copy(deep=True)
+    return (
+        copy_df
+        .astype({'ADOPERATIONID': 'int',
+                'ADTYPOLOGYID': 'int'
+                })
+        .join(operation_types_df.set_index('ID'), on='ADOPERATIONID', how="left", validate="m:1")
+        .rename(columns={
+            'SHORTNAME': 'ADOPERATION',
+                        }
+                )
+        .astype({'ADOPERATION': 'category',
+                'ADOPERATIONID': 'category'
+                })
+        .drop(columns=("DESCRIPTION"))
+        .join(typology_types_df.set_index('ID'), on='ADTYPOLOGYID', how="left", validate="m:1")
+        .rename(columns={
+            'SHORTNAME': 'ADTYPOLOGY',
+                        }
+                )
+        .astype({'ADTYPOLOGY': 'category',
+                'ADTYPOLOGYID': 'category'
+                })
+        .drop(columns=("DESCRIPTION"))
+    )
+processed_df = process_df(df)
+
+
+# # load data
+# df = pd.read_csv( INPUT_DATA_PATH, sep = ';', dtype=dtypes_coupled_dict)
+# gdf_ine = gpd.read_file(INPUT_INE_CENSUSTRACT_GEOJSON)
+# gdf_ine['CENSUSTRACT'] = gdf_ine['CENSUSTRACT'].astype(int).astype(str)
+
+# operation_types_df = pd.read_csv( INPUT_OPERATION_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
+# typology_types_df = pd.read_csv( INPUT_TYPOLOGY_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
+
+# interventions_gdf =  gpd.read_file( INPUT_SUPERILLES_INTERVENTIONS_GEOJSON)
+
+# #interventions_gdf =  interventions_gdf.to_crs("EPSG:4326")
+
+# processed_df = (
+#     df
+#     .astype({'ADOPERATIONID': 'int',
+#             'ADTYPOLOGYID': 'int'
+#             })
+#     .join(operation_types_df.set_index('ID'), on='ADOPERATIONID', how="left", validate="m:1")
+#     .rename(columns={
+#         'SHORTNAME': 'ADOPERATION',
+#                     }
+#             )
+#     .astype({'ADOPERATION': 'category',
+#             'ADOPERATIONID': 'category'
+#             })
+#     .drop(columns=("DESCRIPTION"))
+#     .join(typology_types_df.set_index('ID'), on='ADTYPOLOGYID', how="left", validate="m:1")
+#     .rename(columns={
+#         'SHORTNAME': 'ADTYPOLOGY',
+#                     }
+#             )
+#     .astype({'ADTYPOLOGY': 'category',
+#             'ADTYPOLOGYID': 'category'
+#             })
+#     .drop(columns=("DESCRIPTION"))
+#   )
 #st.write(df)
 # Streamlit App Logic
 st.title("Map Drawing and Geometry Capture")
 
 left, right = st.columns([1,1])  # You can adjust these numbers to your preference
-interventions_gdf = interventions_gdf.to_crs("EPSG:4326")
+
+
+interventions_gdf = interventions_gdf.to_crs('EPSG:4326')
+
+print(interventions_gdf.crs)
+
+print(interventions_gdf['geometry'][0:10])
+#print('problem above')
 #print(interventions_gdf[['TITOL_WO', 'ESTAT']].isnull().sum())
+
 with left:
     st.subheader("Map")
+
+    geometry_selection = st.multiselect(
+        "Select Urban Intervention", 
+        options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
+        help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
+    )
 
     # Create the base map
     m = folium.Map(location=[41.40463, 2.17924], zoom_start=13, tiles="cartodbpositron")
@@ -118,7 +199,10 @@ with left:
     geojson_layer = folium.FeatureGroup(name="Show Urban Interventions")
 
     # Add geometries to the layer
-    for _, row in interventions_gdf.iterrows():
+    filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
+
+    #for _, row in interventions_gdf.iterrows():
+    for _, row in filtered_interventions_gdf.iterrows():
         folium.GeoJson(
             row["geometry"],
             name=row["TITOL_WO"],
@@ -176,16 +260,13 @@ with left:
         my_censustracts = []
 
     
-
-
-
 with right:
 
-    geometry_selection = st.multiselect(
-        "Select Urban Intervention", 
-        options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
-        help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
-    )
+    # geometry_selection = st.multiselect(
+    #     "Select Urban Intervention", 
+    #     options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
+    #     help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
+    # )
 
     # Price type filter
     price_type = st.radio("Price Type", ['Both', 'Sale', 'Rent'], horizontal=True)
@@ -209,10 +290,12 @@ with right:
                 #print(my_censustracts) # Combine geometries
                 chart = fc.plot_timeseries(
                     processed_df, 
-                    interventions_gdf, 
+                    #interventions_gdf, 
+                    # TA-change
+                    filtered_df,
                     my_censustracts,
                     price_type=price_type.lower(),
-                    district = True
+                    district = True #True
                 )
                 if chart is not None:
                     st.plotly_chart(chart, use_container_width=True)
@@ -225,7 +308,7 @@ with right:
                 interventions_gdf, 
                 my_censustracts,
                 price_type=price_type.lower(),
-                district = True
+                district = True #True
             )
 
             # Display the chart if available
