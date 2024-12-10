@@ -131,44 +131,6 @@ def process_df(df: pd.DataFrame) -> pd.DataFrame:
     )
 processed_df = process_df(df)
 
-
-# # load data
-# df = pd.read_csv( INPUT_DATA_PATH, sep = ';', dtype=dtypes_coupled_dict)
-# gdf_ine = gpd.read_file(INPUT_INE_CENSUSTRACT_GEOJSON)
-# gdf_ine['CENSUSTRACT'] = gdf_ine['CENSUSTRACT'].astype(int).astype(str)
-
-# operation_types_df = pd.read_csv( INPUT_OPERATION_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
-# typology_types_df = pd.read_csv( INPUT_TYPOLOGY_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
-
-# interventions_gdf =  gpd.read_file( INPUT_SUPERILLES_INTERVENTIONS_GEOJSON)
-
-# #interventions_gdf =  interventions_gdf.to_crs("EPSG:4326")
-
-# processed_df = (
-#     df
-#     .astype({'ADOPERATIONID': 'int',
-#             'ADTYPOLOGYID': 'int'
-#             })
-#     .join(operation_types_df.set_index('ID'), on='ADOPERATIONID', how="left", validate="m:1")
-#     .rename(columns={
-#         'SHORTNAME': 'ADOPERATION',
-#                     }
-#             )
-#     .astype({'ADOPERATION': 'category',
-#             'ADOPERATIONID': 'category'
-#             })
-#     .drop(columns=("DESCRIPTION"))
-#     .join(typology_types_df.set_index('ID'), on='ADTYPOLOGYID', how="left", validate="m:1")
-#     .rename(columns={
-#         'SHORTNAME': 'ADTYPOLOGY',
-#                     }
-#             )
-#     .astype({'ADTYPOLOGY': 'category',
-#             'ADTYPOLOGYID': 'category'
-#             })
-#     .drop(columns=("DESCRIPTION"))
-#   )
-#st.write(df)
 # Streamlit App Logic
 st.title("Map Drawing and Geometry Capture")
 
@@ -177,9 +139,6 @@ left, right = st.columns([1,1])  # You can adjust these numbers to your preferen
 
 interventions_gdf = interventions_gdf.to_crs('EPSG:4326')
 
-print(interventions_gdf.crs)
-
-print(interventions_gdf['geometry'][0:10])
 #print('problem above')
 #print(interventions_gdf[['TITOL_WO', 'ESTAT']].isnull().sum())
 
@@ -197,6 +156,23 @@ with left:
 
     # Create a GeoJSON layer for all geometries
     geojson_layer = folium.FeatureGroup(name="Show Urban Interventions")
+
+    #draw all interventions to find possible intersections
+    for _, row in interventions_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            name=row["TITOL_WO"],
+            tooltip = row["TITOL_WO"],
+            style_function=lambda x: {
+                "fillColor": "black",
+                "color": "black",
+                "weight": 0.5,
+                "fillOpacity": 0.3,
+            },
+        ).add_to(geojson_layer)
+
+    # Add the GeoJSON layer to the map
+    geojson_layer.add_to(m)
 
     # Add geometries to the layer
     filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
@@ -239,6 +215,22 @@ with left:
         title_cancel="Exit me",
         force_separate_button=True,
     ).add_to(m)
+
+    #show district as control group
+    df_districts = fc.filter_data_per_district(processed_df, filtered_interventions_gdf)
+    district_gdf = gdf_ine[gdf_ine.CENSUSTRACT.isin(df_districts.CENSUSTRACT)].to_crs('EPSG:4326')
+
+    for _, row in district_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            style_function=lambda x: {
+                "fillColor": "red",
+                "color": "red",
+                "weight": 1,
+                "fillOpacity": 0.4,
+            },
+        ).add_to(geojson_layer)
+
     # Display the map in the Streamlit app
     output = st_folium(m, width=600, height=500)
 
