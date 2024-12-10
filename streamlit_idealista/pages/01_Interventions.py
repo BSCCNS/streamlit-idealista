@@ -157,6 +157,23 @@ with left:
     # Create a GeoJSON layer for all geometries
     geojson_layer = folium.FeatureGroup(name="Show Urban Interventions")
 
+    #draw all interventions to find possible intersections
+    for _, row in interventions_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            name=row["TITOL_WO"],
+            tooltip = row["TITOL_WO"],
+            style_function=lambda x: {
+                "fillColor": "black",
+                "color": "black",
+                "weight": 0.5,
+                "fillOpacity": 0.3,
+            },
+        ).add_to(geojson_layer)
+
+    # Add the GeoJSON layer to the map
+    geojson_layer.add_to(m)
+
     # Add geometries to the layer
     filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
 
@@ -200,16 +217,7 @@ with left:
     ).add_to(m)
 
     #show district as control group
-    # processed_df['district'] = processed_df['CENSUSTRACT'].astype(str).str[4:6]
-    # processed_df['munucipality'] = processed_df['CENSUSTRACT'].astype(str).str[0:4]
-
-    # c1 = processed_df.district.isin(filtered_interventions_gdf.DISTRITO)
-    # c2 = processed_df.munucipality.isin(filtered_interventions_gdf['PROVMUN'].astype(int).astype(str))
-
-    # df_districts = processed_df[c1 & c2]
-
     df_districts = fc.filter_data_per_district(processed_df, filtered_interventions_gdf)
-
     district_gdf = gdf_ine[gdf_ine.CENSUSTRACT.isin(df_districts.CENSUSTRACT)].to_crs('EPSG:4326')
 
     for _, row in district_gdf.iterrows():
