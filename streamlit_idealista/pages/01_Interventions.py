@@ -158,8 +158,10 @@ with left:
     filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
     impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine) 
 
-
-    print(impacted_gdf.head())
+    # district
+    filtered_interventions_gdf['md'] = filtered_interventions_gdf['CENSUSTRACT'].astype(str).str[0:7].astype(int)
+    gdf_ine['md'] = gdf_ine['CENSUSTRACT'].astype(str).str[0:6].astype(int)
+    district_gdf = gdf_ine[gdf_ine['md'].isin(filtered_interventions_gdf['md'])]
 
     for _, row in interventions_gdf.iterrows():
         folium.GeoJson(
@@ -195,6 +197,17 @@ with left:
                 "color": "blue",
                 "weight": 2,
                 "fillOpacity": 0.6,
+            },
+        ).add_to(geojson_layer)
+
+    for _, row in district_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            style_function=lambda x: {
+                "fillColor": "green",
+                "color": "green",
+                "weight": 2,
+                "fillOpacity": 0.3,
             },
         ).add_to(geojson_layer)
 
