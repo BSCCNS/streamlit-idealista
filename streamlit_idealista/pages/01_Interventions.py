@@ -137,7 +137,7 @@ st.title("Map Drawing and Geometry Capture")
 left, right = st.columns([1,1])  # You can adjust these numbers to your preference
 
 interventions_gdf = interventions_gdf.to_crs('EPSG:4326')
-
+gdf_ine = gdf_ine.to_crs("EPSG:4326")
 
 with left:
     st.subheader("Map")
@@ -156,7 +156,10 @@ with left:
 
     # Add geometries to the layer
     filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
-    impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine)   
+    impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine) 
+
+
+    print(impacted_gdf.head())
 
     for _, row in interventions_gdf.iterrows():
         folium.GeoJson(
@@ -179,6 +182,17 @@ with left:
             style_function=lambda x: {
                 "fillColor": "red",
                 "color": "red",
+                "weight": 1,
+                "fillOpacity": 0.6,
+            },
+        ).add_to(geojson_layer)
+
+    for _, row in impacted_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            style_function=lambda x: {
+                "fillColor": "blue",
+                "color": "blue",
                 "weight": 2,
                 "fillOpacity": 0.6,
             },
