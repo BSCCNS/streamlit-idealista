@@ -158,20 +158,20 @@ with left:
     filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
     impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine)   
 
-    for _, row in filtered_interventions_gdf.iterrows():
+    for _, row in interventions_gdf.iterrows():
         folium.GeoJson(
             row["geometry"],
             name=row["TITOL_WO"],
             tooltip = row["TITOL_WO"],
             style_function=lambda x: {
-                "fillColor": "blue",
-                "color": "blue",
-                "weight": 2,
-                "fillOpacity": 0.6,
+                "fillColor": "grey",
+                "color": "grey",
+                "weight": 1,
+                "fillOpacity": 0.3,
             },
         ).add_to(geojson_layer)
 
-    for _, row in impacted_gdf.iterrows():
+    for _, row in filtered_interventions_gdf.iterrows():
         folium.GeoJson(
             row["geometry"],
             name=row["TITOL_WO"],
