@@ -41,6 +41,29 @@ def transform_geometry(geometry):
 
     return transformed_geom
 
+
+def get_impacted_gdf(my_gdf: Union[gpd.GeoDataFrame, None],
+                    ine_gdf: gpd.GeoDataFrame
+                    ) -> Optional[List[str]]:
+    """
+    Get the impacted censustracts.
+
+    Args:
+      my_gdf (gpd.GeoDataFrame): gdf containing the areas to check in its geometry.
+      ine_gdf (gpd.GeoDataFrame): Geopandas with INE information about
+      censustracts and their polygons.
+
+    Returns:
+      Optional[List[str]]: The impacted censustracts.
+    """
+    if my_gdf is None:
+        return None
+    
+    mask = ine_gdf['geometry'].intersects(my_gdf["geometry"].union_all())
+    impacted_gdf = ine_gdf[mask].copy()
+
+    return impacted_gdf
+
 def get_impacted_censustracts(geometries: Union[shapely.geometry.GeometryCollection, None],
                               ine_gdf: gpd.GeoDataFrame
                                ) -> Optional[List[str]]:
@@ -157,6 +180,22 @@ def merge_intervals(intervals):
 
     merged.append((current_start, current_end, interventions))
     return merged
+
+def add_geometry_layer(gdf, geojson_layer, **style_dict):
+    for _, row in gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            name=row["TITOL_WO"],
+            tooltip = row["TITOL_WO"],
+            # style_function=lambda x: {
+            #     "fillColor": "blue",
+            #     "color": "blue",
+            #     "weight": 2,
+            #     "fillOpacity": 0.6,
+            # },
+            style_function=lambda x: style_dict,
+        ).add_to(geojson_layer)
+
 
 def plot_timeseries(df: pd.DataFrame,
                     interventions_gdf: gpd.GeoDataFrame,

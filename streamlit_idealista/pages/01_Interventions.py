@@ -131,57 +131,13 @@ def process_df(df: pd.DataFrame) -> pd.DataFrame:
     )
 processed_df = process_df(df)
 
-
-# # load data
-# df = pd.read_csv( INPUT_DATA_PATH, sep = ';', dtype=dtypes_coupled_dict)
-# gdf_ine = gpd.read_file(INPUT_INE_CENSUSTRACT_GEOJSON)
-# gdf_ine['CENSUSTRACT'] = gdf_ine['CENSUSTRACT'].astype(int).astype(str)
-
-# operation_types_df = pd.read_csv( INPUT_OPERATION_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
-# typology_types_df = pd.read_csv( INPUT_TYPOLOGY_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
-
-# interventions_gdf =  gpd.read_file( INPUT_SUPERILLES_INTERVENTIONS_GEOJSON)
-
-# #interventions_gdf =  interventions_gdf.to_crs("EPSG:4326")
-
-# processed_df = (
-#     df
-#     .astype({'ADOPERATIONID': 'int',
-#             'ADTYPOLOGYID': 'int'
-#             })
-#     .join(operation_types_df.set_index('ID'), on='ADOPERATIONID', how="left", validate="m:1")
-#     .rename(columns={
-#         'SHORTNAME': 'ADOPERATION',
-#                     }
-#             )
-#     .astype({'ADOPERATION': 'category',
-#             'ADOPERATIONID': 'category'
-#             })
-#     .drop(columns=("DESCRIPTION"))
-#     .join(typology_types_df.set_index('ID'), on='ADTYPOLOGYID', how="left", validate="m:1")
-#     .rename(columns={
-#         'SHORTNAME': 'ADTYPOLOGY',
-#                     }
-#             )
-#     .astype({'ADTYPOLOGY': 'category',
-#             'ADTYPOLOGYID': 'category'
-#             })
-#     .drop(columns=("DESCRIPTION"))
-#   )
-#st.write(df)
 # Streamlit App Logic
 st.title("Map Drawing and Geometry Capture")
 
 left, right = st.columns([1,1])  # You can adjust these numbers to your preference
 
-
 interventions_gdf = interventions_gdf.to_crs('EPSG:4326')
 
-print(interventions_gdf.crs)
-
-print(interventions_gdf['geometry'][0:10])
-#print('problem above')
-#print(interventions_gdf[['TITOL_WO', 'ESTAT']].isnull().sum())
 
 with left:
     st.subheader("Map")
@@ -200,20 +156,26 @@ with left:
 
     # Add geometries to the layer
     filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
+  
+    impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine)   
 
-    #for _, row in interventions_gdf.iterrows():
-    for _, row in filtered_interventions_gdf.iterrows():
-        folium.GeoJson(
-            row["geometry"],
-            name=row["TITOL_WO"],
-            tooltip = row["TITOL_WO"],
-            style_function=lambda x: {
-                "fillColor": "blue",
-                "color": "blue",
-                "weight": 2,
-                "fillOpacity": 0.6,
-            },
-        ).add_to(geojson_layer)
+    fc.add_geometry_layer(filtered_interventions_gdf, 
+                            geojson_layer, 
+                            {
+                            "fillColor": "blue",
+                            "color": "blue",
+                            "weight": 2,
+                            "fillOpacity": 0.6,
+                            })
+    
+    fc.add_geometry_layer(impacted_gdf, 
+                            geojson_layer, 
+                            {
+                            "fillColor": "red",
+                            "color": "red",
+                            "weight": 1,
+                            "fillOpacity": 0.3,
+                            })
 
     # Add the GeoJSON layer to the map
     geojson_layer.add_to(m)
