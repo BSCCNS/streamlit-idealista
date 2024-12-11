@@ -181,7 +181,7 @@ def merge_intervals(intervals):
     merged.append((current_start, current_end, interventions))
     return merged
 
-def add_geometry_layer(gdf, geojson_layer, **style_dict):
+def add_geometry_layer(gdf, geojson_layer, style_dict = None):
     for _, row in gdf.iterrows():
         folium.GeoJson(
             row["geometry"],
@@ -195,7 +195,7 @@ def add_geometry_layer(gdf, geojson_layer, **style_dict):
             # },
             style_function=lambda x: style_dict,
         ).add_to(geojson_layer)
-
+    
 
 def plot_timeseries(df: pd.DataFrame,
                     interventions_gdf: gpd.GeoDataFrame,

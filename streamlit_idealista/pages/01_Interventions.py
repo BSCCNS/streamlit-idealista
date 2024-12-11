@@ -156,26 +156,33 @@ with left:
 
     # Add geometries to the layer
     filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
-  
     impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine)   
 
-    fc.add_geometry_layer(filtered_interventions_gdf, 
-                            geojson_layer, 
-                            {
-                            "fillColor": "blue",
-                            "color": "blue",
-                            "weight": 2,
-                            "fillOpacity": 0.6,
-                            })
-    
-    fc.add_geometry_layer(impacted_gdf, 
-                            geojson_layer, 
-                            {
-                            "fillColor": "red",
-                            "color": "red",
-                            "weight": 1,
-                            "fillOpacity": 0.3,
-                            })
+    for _, row in filtered_interventions_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            name=row["TITOL_WO"],
+            tooltip = row["TITOL_WO"],
+            style_function=lambda x: {
+                "fillColor": "blue",
+                "color": "blue",
+                "weight": 2,
+                "fillOpacity": 0.6,
+            },
+        ).add_to(geojson_layer)
+
+    for _, row in impacted_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            name=row["TITOL_WO"],
+            tooltip = row["TITOL_WO"],
+            style_function=lambda x: {
+                "fillColor": "red",
+                "color": "red",
+                "weight": 2,
+                "fillOpacity": 0.6,
+            },
+        ).add_to(geojson_layer)
 
     # Add the GeoJSON layer to the map
     geojson_layer.add_to(m)
