@@ -131,57 +131,13 @@ def process_df(df: pd.DataFrame) -> pd.DataFrame:
     )
 processed_df = process_df(df)
 
-
-# # load data
-# df = pd.read_csv( INPUT_DATA_PATH, sep = ';', dtype=dtypes_coupled_dict)
-# gdf_ine = gpd.read_file(INPUT_INE_CENSUSTRACT_GEOJSON)
-# gdf_ine['CENSUSTRACT'] = gdf_ine['CENSUSTRACT'].astype(int).astype(str)
-
-# operation_types_df = pd.read_csv( INPUT_OPERATION_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
-# typology_types_df = pd.read_csv( INPUT_TYPOLOGY_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
-
-# interventions_gdf =  gpd.read_file( INPUT_SUPERILLES_INTERVENTIONS_GEOJSON)
-
-# #interventions_gdf =  interventions_gdf.to_crs("EPSG:4326")
-
-# processed_df = (
-#     df
-#     .astype({'ADOPERATIONID': 'int',
-#             'ADTYPOLOGYID': 'int'
-#             })
-#     .join(operation_types_df.set_index('ID'), on='ADOPERATIONID', how="left", validate="m:1")
-#     .rename(columns={
-#         'SHORTNAME': 'ADOPERATION',
-#                     }
-#             )
-#     .astype({'ADOPERATION': 'category',
-#             'ADOPERATIONID': 'category'
-#             })
-#     .drop(columns=("DESCRIPTION"))
-#     .join(typology_types_df.set_index('ID'), on='ADTYPOLOGYID', how="left", validate="m:1")
-#     .rename(columns={
-#         'SHORTNAME': 'ADTYPOLOGY',
-#                     }
-#             )
-#     .astype({'ADTYPOLOGY': 'category',
-#             'ADTYPOLOGYID': 'category'
-#             })
-#     .drop(columns=("DESCRIPTION"))
-#   )
-#st.write(df)
 # Streamlit App Logic
 st.title("Map Drawing and Geometry Capture")
 
 left, right = st.columns([1,1])  # You can adjust these numbers to your preference
 
-
 interventions_gdf = interventions_gdf.to_crs('EPSG:4326')
-
-print(interventions_gdf.crs)
-
-print(interventions_gdf['geometry'][0:10])
-#print('problem above')
-#print(interventions_gdf[['TITOL_WO', 'ESTAT']].isnull().sum())
+gdf_ine = gdf_ine.to_crs("EPSG:4326")
 
 with left:
     st.subheader("Map")
@@ -198,20 +154,67 @@ with left:
     # Create a GeoJSON layer for all geometries
     geojson_layer = folium.FeatureGroup(name="Show Urban Interventions")
 
-    # Add geometries to the layer
-    filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
+    # selected interventions
+    filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)].copy()
 
-    #for _, row in interventions_gdf.iterrows():
+    # impacted area
+    impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine) 
+
+    # district of the selected intervention
+    filtered_interventions_gdf['md'] = filtered_interventions_gdf['CENSUSTRACT'].astype(str).str[0:7].astype(int)
+    gdf_ine['md'] = gdf_ine['CENSUSTRACT'].astype(str).str[0:6].astype(int)
+
+    # to use district as control group, remove intervened censustracts
+    c1 = gdf_ine['md'].isin(filtered_interventions_gdf['md'])
+    c2 = ~gdf_ine['CENSUSTRACT'].astype(int).isin(filtered_interventions_gdf['CENSUSTRACT'].astype(str).astype(int))
+    district_gdf = gdf_ine[c1 & c2]
+
+    # Add geometries to the layer
+    for _, row in interventions_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            name=row["TITOL_WO"],
+            tooltip = row["TITOL_WO"],
+            style_function=lambda x: {
+                "fillColor": "grey",
+                "color": "grey",
+                "weight": 1,
+                "fillOpacity": 0.3,
+            },
+        ).add_to(geojson_layer)
+
     for _, row in filtered_interventions_gdf.iterrows():
         folium.GeoJson(
             row["geometry"],
             name=row["TITOL_WO"],
             tooltip = row["TITOL_WO"],
             style_function=lambda x: {
-                "fillColor": "blue",
-                "color": "blue",
+                "fillColor": "red",
+                "color": "red",
                 "weight": 2,
                 "fillOpacity": 0.6,
+            },
+        ).add_to(geojson_layer)
+
+    for _, row in impacted_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            style_function=lambda x: {
+                "fillColor": "blue",
+                "color": "blue",
+                "weight": 1,
+                "fillOpacity": 0.4,
+            },
+        ).add_to(geojson_layer)
+
+    for _, row in district_gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            style_function=lambda x: {
+                "fillColor": "green",
+                "color": "green",
+                "weight": 1,
+                "fillOpacity": 0.3,
             },
         ).add_to(geojson_layer)
 
@@ -261,42 +264,25 @@ with left:
 
     
 with right:
-
-    # geometry_selection = st.multiselect(
-    #     "Select Urban Intervention", 
-    #     options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
-    #     help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
-    # )
-
     # Price type filter
     price_type = st.radio("Price Type", ['Both', 'Sale', 'Rent'], horizontal=True)
 
     try:
-        # Ensure all dataframes are in the same CRS
-        interventions_gdf = interventions_gdf.to_crs("EPSG:4326")
-        gdf_ine = gdf_ine.to_crs("EPSG:4326")
-
-
-        if geometry_selection:
-            # Filter data based on selected geometries
-            filtered_df = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)]
-            
-            if filtered_df.empty:
+        if geometry_selection: 
+            if filtered_interventions_gdf.empty:
                 print("No matching interventions found for the selected geometries.")
                 my_censustracts = []  # No impacted census tracts
             else:
-                #print(filtered_df.head())
-                my_censustracts = fc.get_impacted_censustracts(filtered_df["geometry"].union_all(), gdf_ine) 
-                #print(my_censustracts) # Combine geometries
                 chart = fc.plot_timeseries(
-                    processed_df, 
-                    #interventions_gdf, 
-                    # TA-change
-                    filtered_df,
-                    my_censustracts,
+                    processed_df,
+                    interventions_gdf, 
+                    impacted_gdf,
+                    gdf_ine,
                     price_type=price_type.lower(),
-                    district = True #True
+                    district = True,
+                    district_gdf = district_gdf,
                 )
+
                 if chart is not None:
                     st.plotly_chart(chart, use_container_width=True)
                 if not my_censustracts:
@@ -304,11 +290,13 @@ with right:
         else:
             # Use the geometry drawn on the map
             chart = fc.plot_timeseries(
-                processed_df, 
+                processed_df,
                 interventions_gdf, 
-                my_censustracts,
+                impacted_gdf,
+                gdf_ine,
                 price_type=price_type.lower(),
-                district = True #True
+                district = True,
+                district_gdf = district_gdf,
             )
 
             # Display the chart if available

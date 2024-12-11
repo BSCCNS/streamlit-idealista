@@ -41,6 +41,29 @@ def transform_geometry(geometry):
 
     return transformed_geom
 
+
+def get_impacted_gdf(my_gdf: Union[gpd.GeoDataFrame, None],
+                    ine_gdf: gpd.GeoDataFrame
+                    ) -> Optional[List[str]]:
+    """
+    Get the impacted censustracts.
+
+    Args:
+      my_gdf (gpd.GeoDataFrame): gdf containing the areas to check in its geometry.
+      ine_gdf (gpd.GeoDataFrame): Geopandas with INE information about
+      censustracts and their polygons.
+
+    Returns:
+      Optional[List[str]]: The impacted censustracts.
+    """
+    if my_gdf is None:
+        return None
+    
+    mask = ine_gdf['geometry'].intersects(my_gdf["geometry"].union_all())
+    impacted_gdf = ine_gdf[mask].copy()
+
+    return impacted_gdf
+
 def get_impacted_censustracts(geometries: Union[shapely.geometry.GeometryCollection, None],
                               ine_gdf: gpd.GeoDataFrame
                                ) -> Optional[List[str]]:
@@ -158,13 +181,32 @@ def merge_intervals(intervals):
     merged.append((current_start, current_end, interventions))
     return merged
 
+def add_geometry_layer(gdf, geojson_layer, style_dict = None):
+    for _, row in gdf.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            name=row["TITOL_WO"],
+            tooltip = row["TITOL_WO"],
+            # style_function=lambda x: {
+            #     "fillColor": "blue",
+            #     "color": "blue",
+            #     "weight": 2,
+            #     "fillOpacity": 0.6,
+            # },
+            style_function=lambda x: style_dict,
+        ).add_to(geojson_layer)
+    
+
 def plot_timeseries(df: pd.DataFrame,
                     interventions_gdf: gpd.GeoDataFrame,
-                    censustract_list: Union[List[str], None] = None,
+                    impacted_gdf: gpd.GeoDataFrame,
+                    ine_gdf: gpd.GeoDataFrame,
                     include_trends: bool=True,
                     price_type: str = 'both',
-                    district: bool =True
+                    district: bool =True,
+                    district_gdf: gpd.GeoDataFrame = None,
                     ) -> go.Figure:
+    
     """
     Plot the timeseries of prices (rent, sale) for the given census tracts.
     If more than one census tract, the mean is taken.
@@ -193,20 +235,15 @@ def plot_timeseries(df: pd.DataFrame,
                       'Eixos Verds LOT 1: ': 'LOT 1',
                       'Eix verd Sant Antoni': 'Sant Antoni'}
 
-    df['district'] = df['CENSUSTRACT'].astype(str).str[4:6]
+    censustract_list = get_impacted_censustracts(impacted_gdf["geometry"].union_all(), ine_gdf) 
     df_census = get_timeseries_of_census_tracts(df, censustract_list)
 
-    #print("df_census", df_census)
     if df_census is None:
         raise ValueError("funtion get_timeseries_of_census_tracts returned None")
 
-
-
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-
     fig.add_trace(
-        # TA-change
         go.Scatter(x=df_census["sale"].index, y=df_census["sale"].values, name="Average buy"),
         secondary_y=False,
     )
@@ -216,34 +253,58 @@ def plot_timeseries(df: pd.DataFrame,
         secondary_y=True,
     )
 
+    if district == True:
+        census_district = list(district_gdf['CENSUSTRACT'].astype(int).astype(str))
+        df_district_census = get_timeseries_of_census_tracts(df, census_district)
+
+        fig.add_trace(
+            go.Scatter(x=df_district_census["sale"].index, 
+                       y=df_district_census["sale"].values, 
+                       name="District buy", 
+                       line=dict(color='#C1A2CA')),
+            secondary_y=False,
+        )
+        fig.add_trace(
+            go.Scatter(x=df_district_census["rent"].index, 
+                       y=df_district_census["rent"].values, 
+                       name="District rent", 
+                       line=dict(color='#C1A2CA')),
+            secondary_y=True,
+        )
+
     if include_trends:
         trend_sale = get_trend_of_timeseries(df_census["sale"])
         trend_rent = get_trend_of_timeseries(df_census["rent"])
 
         fig.add_trace(
-            go.Scatter(x=trend_sale.index, y=trend_sale.values, name="Trend buy"),
+            go.Scatter(x=trend_sale.index, 
+                       y=trend_sale.values, 
+                       name="Trend buy"),
             secondary_y=False,
         )
         fig.add_trace(
-            go.Scatter(x=trend_rent.index, y=trend_rent.values, name="Trend rent"),
+            go.Scatter(x=trend_rent.index, 
+                       y=trend_rent.values, 
+                       name="Trend rent"),
             secondary_y=True,
         )
-        if district == True:
-    
-            df_districts = df[df.district.isin(interventions_gdf.DISTRITO)]
-            df_districts_list = get_timeseries_of_census_tracts(df_districts, censustract_list)
 
-            trend_sale_district = get_trend_of_timeseries(df_districts_list["sale"])
-            trend_rent_district = get_trend_of_timeseries(df_districts_list["rent"])
+        if district == True:
+            trend_sale_district = get_trend_of_timeseries(df_district_census["sale"])
+            trend_rent_district = get_trend_of_timeseries(df_district_census["rent"])
+
             fig.add_trace(
-                go.Scatter(x=trend_sale_district.index, y=trend_sale_district.values, name="District buy",line=dict(color='#C1A2CA')),
-                secondary_y=False,
+            go.Scatter(x=trend_sale_district.index, 
+                       y=trend_sale_district.values, 
+                       name="Trend district buy"),
+            secondary_y=False,
             )
             fig.add_trace(
-                go.Scatter(x=trend_rent_district.index, y=trend_rent_district.values, name="District rent", line=dict(color='#C1A2CA')),
+                go.Scatter(x=trend_rent_district.index, 
+                           y=trend_rent_district.values, 
+                           name="Trend district rent"),
                 secondary_y=True,
             )
-
 
     # Ensure CENSUSTRACT values in interventions_gdf are strings with 10 digits
     interventions_gdf["CENSUSTRACT"] = interventions_gdf["CENSUSTRACT"].astype(int).astype(str).str.zfill(10)
@@ -300,7 +361,6 @@ def plot_timeseries(df: pd.DataFrame,
             )
                 # Price type filtering
 
-    #TA-change
     if price_type == 'sale':
         fig.data = [trace for trace in fig.data if "buy" in trace.name]
     elif price_type == 'rent':
