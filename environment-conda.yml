@@ -19,10 +19,12 @@ dependencies:
   - geopandas
   - prophet
   - plotly
-  - jsonschema  
+  - jsonschema
   - streamlit-folium
+  - fsspec  # filesystem
   - pip:
     - python-dotenv
     - mkdocs
     - -e .
     - pathlib
+    - webdav4[fsspec]  # filesystem

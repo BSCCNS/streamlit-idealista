@@ -11,4 +11,6 @@ geopandas
 plotly
 prophet
 python-dotenv
+fsspec
+webdav4[fsspec]  # filesystem
 -e .

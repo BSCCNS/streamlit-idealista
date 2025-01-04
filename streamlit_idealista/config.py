@@ -1,10 +1,18 @@
+import json
+import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 from loguru import logger
-import json
 
 # Load environment variables from .env file if it exists
 load_dotenv()
+
+# cloud
+FROM_B2DROP = os.getenv("USING_NEXTCLOUD") in ["1", "True", "true", "TRUE"]
+B2DROP_WEBDAV_URL = os.getenv("B2DROP_WEBDAV_URL", "")
+# B2DROP_PYTHON_CLIENT_USER
+# B2DROP_PYTHON_CLIENT_PASS  # (user, password) is not stored to avoid exposure.
 
 # Paths
 PROJ_ROOT = Path(__file__).resolve().parents[1]
