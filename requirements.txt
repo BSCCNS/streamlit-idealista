@@ -13,4 +13,5 @@ prophet
 python-dotenv
 fsspec
 webdav4[fsspec]  # filesystem
+universal_pathlib  # filesystem
 -e .
