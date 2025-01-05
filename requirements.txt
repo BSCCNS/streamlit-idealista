@@ -1,0 +1,17 @@
+typer
+loguru
+tqdm
+streamlit
+streamlit-folium
+folium  # interactive maps (leaflet)
+shapely  # spatial data science
+pyproj
+pandas  # data science
+geopandas  # spatial data science
+plotly  # interactive plots
+prophet  # time series
+python-dotenv  # env variables
+fsspec  # filesystem
+webdav4[fsspec]  # filesystem
+universal_pathlib  # filesystem
+-e .  # install streamlit_idealista as a python package (see pip editable mode)
