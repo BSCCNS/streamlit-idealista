@@ -1,34 +1,44 @@
-from streamlit_idealista.config import   INPUT_DATA_PATH, INPUT_OPERATION_TYPES_PATH, INPUT_TYPOLOGY_TYPES_PATH, INPUT_OPERATION_TYPES_PATH, INPUT_SUPERILLES_INTERVENTIONS_GEOJSON, INPUT_DTYPES_COUPLED_JSON_PATH, INPUT_INE_CENSUSTRACT_GEOJSON 
-import functions as fc
-import streamlit as st
-import folium as folium
-from folium.plugins import Draw
-from streamlit_folium import st_folium
+import json
 from pathlib import Path
-from shapely.geometry import GeometryCollection, shape
-from shapely.ops import transform
-from typing import Union,Optional,List
+from typing import List, Optional, Union
+
+import folium as folium
+import functions as fc
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import json
-import geopandas as gpd
-import shapely
-from prophet import Prophet
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from pyproj import Transformer
-from PIL import Image
 
 # Added this to avoid error when converting to eps 4326. Following
 # https://stackoverflow.com/questions/78050786/why-does-geopandas-to-crs-give-inf-inf-the-first-time-and-correct-resul
 import pyproj
+import shapely
+import streamlit as st
+from folium.plugins import Draw
+from PIL import Image
+from plotly.subplots import make_subplots
+from prophet import Prophet
+from pyproj import Transformer
+from shapely.geometry import GeometryCollection, shape
+from shapely.ops import transform
+from streamlit_folium import st_folium
+
+from streamlit_idealista.config import (
+    INPUT_DATA_PATH,
+    INPUT_DTYPES_COUPLED_JSON_PATH,
+    INPUT_INE_CENSUSTRACT_GEOJSON,
+    INPUT_OPERATION_TYPES_PATH,
+    INPUT_SUPERILLES_INTERVENTIONS_GEOJSON,
+    INPUT_TYPOLOGY_TYPES_PATH,
+    PROJ_ROOT,
+)
+
 pyproj.network.set_network_enabled(False)
 
-im = Image.open("assets/favicon.png")
-   
-st.set_page_config(    
-    
+im = Image.open(PROJ_ROOT / "streamlit_idealista/assets/favicon.png")
+
+st.set_page_config(
+
     page_title="Idealista Dashboard",
     page_icon= im,
     layout="wide",
@@ -58,7 +68,7 @@ st.title("Idealista Data Exploration Dashboard")
 
 # Dashboard Description
 st.markdown("""
-This dashboard allows users to explore data from the **Idealista dataset** effectively. 
+This dashboard allows users to explore data from the **Idealista dataset** effectively.
 
 ### How to Use:
 1. **Draw on the Map**: Select the area of interest by drawing a polygon on the map.
@@ -143,7 +153,7 @@ with left:
     st.subheader("Map")
 
     geometry_selection = st.multiselect(
-        "Select Urban Intervention", 
+        "Select Urban Intervention",
         options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
         help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
     )
@@ -158,7 +168,7 @@ with left:
     filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)].copy()
 
     # impacted area
-    impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine) 
+    impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine)
 
     # district of the selected intervention
     filtered_interventions_gdf['md'] = filtered_interventions_gdf['CENSUSTRACT'].astype(str).str[0:7].astype(int)
@@ -222,7 +232,7 @@ with left:
     geojson_layer.add_to(m)
 
     # Add layer control to toggle visibility of geometries
-    
+
     # Initialize the Draw plugin
     draw = Draw(
         draw_options={
@@ -262,20 +272,20 @@ with left:
         st.warning("No geometry has been drawn, so no census tracts can be impacted.")
         my_censustracts = []
 
-    
+
 with right:
     # Price type filter
     price_type = st.radio("Price Type", ['Both', 'Sale', 'Rent'], horizontal=True)
 
     try:
-        if geometry_selection: 
+        if geometry_selection:
             if filtered_interventions_gdf.empty:
                 print("No matching interventions found for the selected geometries.")
                 my_censustracts = []  # No impacted census tracts
             else:
                 chart = fc.plot_timeseries(
                     processed_df,
-                    interventions_gdf, 
+                    interventions_gdf,
                     impacted_gdf,
                     gdf_ine,
                     price_type=price_type.lower(),
@@ -291,7 +301,7 @@ with right:
             # Use the geometry drawn on the map
             chart = fc.plot_timeseries(
                 processed_df,
-                interventions_gdf, 
+                interventions_gdf,
                 impacted_gdf,
                 gdf_ine,
                 price_type=price_type.lower(),

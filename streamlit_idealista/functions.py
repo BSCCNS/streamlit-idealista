@@ -58,7 +58,7 @@ def get_impacted_gdf(my_gdf: Union[gpd.GeoDataFrame, None],
     """
     if my_gdf is None:
         return None
-    
+
     mask = ine_gdf['geometry'].intersects(my_gdf["geometry"].union_all())
     impacted_gdf = ine_gdf[mask].copy()
 
@@ -195,7 +195,7 @@ def add_geometry_layer(gdf, geojson_layer, style_dict = None):
             # },
             style_function=lambda x: style_dict,
         ).add_to(geojson_layer)
-    
+
 
 def plot_timeseries(df: pd.DataFrame,
                     interventions_gdf: gpd.GeoDataFrame,
@@ -206,7 +206,7 @@ def plot_timeseries(df: pd.DataFrame,
                     district: bool =True,
                     district_gdf: gpd.GeoDataFrame = None,
                     ) -> go.Figure:
-    
+    # TODO: update docstring with new args
     """
     Plot the timeseries of prices (rent, sale) for the given census tracts.
     If more than one census tract, the mean is taken.
@@ -235,7 +235,7 @@ def plot_timeseries(df: pd.DataFrame,
                       'Eixos Verds LOT 1: ': 'LOT 1',
                       'Eix verd Sant Antoni': 'Sant Antoni'}
 
-    censustract_list = get_impacted_censustracts(impacted_gdf["geometry"].union_all(), ine_gdf) 
+    censustract_list = get_impacted_censustracts(impacted_gdf["geometry"].union_all(), ine_gdf)
     df_census = get_timeseries_of_census_tracts(df, censustract_list)
 
     if df_census is None:
@@ -258,16 +258,16 @@ def plot_timeseries(df: pd.DataFrame,
         df_district_census = get_timeseries_of_census_tracts(df, census_district)
 
         fig.add_trace(
-            go.Scatter(x=df_district_census["sale"].index, 
-                       y=df_district_census["sale"].values, 
-                       name="District buy", 
+            go.Scatter(x=df_district_census["sale"].index,
+                       y=df_district_census["sale"].values,
+                       name="District buy",
                        line=dict(color='#C1A2CA')),
             secondary_y=False,
         )
         fig.add_trace(
-            go.Scatter(x=df_district_census["rent"].index, 
-                       y=df_district_census["rent"].values, 
-                       name="District rent", 
+            go.Scatter(x=df_district_census["rent"].index,
+                       y=df_district_census["rent"].values,
+                       name="District rent",
                        line=dict(color='#C1A2CA')),
             secondary_y=True,
         )
@@ -277,14 +277,14 @@ def plot_timeseries(df: pd.DataFrame,
         trend_rent = get_trend_of_timeseries(df_census["rent"])
 
         fig.add_trace(
-            go.Scatter(x=trend_sale.index, 
-                       y=trend_sale.values, 
+            go.Scatter(x=trend_sale.index,
+                       y=trend_sale.values,
                        name="Trend buy"),
             secondary_y=False,
         )
         fig.add_trace(
-            go.Scatter(x=trend_rent.index, 
-                       y=trend_rent.values, 
+            go.Scatter(x=trend_rent.index,
+                       y=trend_rent.values,
                        name="Trend rent"),
             secondary_y=True,
         )
@@ -294,14 +294,14 @@ def plot_timeseries(df: pd.DataFrame,
             trend_rent_district = get_trend_of_timeseries(df_district_census["rent"])
 
             fig.add_trace(
-            go.Scatter(x=trend_sale_district.index, 
-                       y=trend_sale_district.values, 
+            go.Scatter(x=trend_sale_district.index,
+                       y=trend_sale_district.values,
                        name="Trend district buy"),
             secondary_y=False,
             )
             fig.add_trace(
-                go.Scatter(x=trend_rent_district.index, 
-                           y=trend_rent_district.values, 
+                go.Scatter(x=trend_rent_district.index,
+                           y=trend_rent_district.values,
                            name="Trend district rent"),
                 secondary_y=True,
             )
@@ -365,6 +365,161 @@ def plot_timeseries(df: pd.DataFrame,
         fig.data = [trace for trace in fig.data if "buy" in trace.name]
     elif price_type == 'rent':
         fig.data = [trace for trace in fig.data if "rent" in trace.name]
+
+    fig.update_layout(
+        title_text="Average Rent/Buy prices for all the Census tracts"
+    )
+
+    fig.update_xaxes(title_text="Periods")
+    fig.update_yaxes(title_text="<b>Rent</b> price", secondary_y=True, showgrid=False)
+    fig.update_yaxes(title_text="<b>Buy</b> price", secondary_y=False)
+    return fig
+
+
+def plot_timeseries_deprecated(df: pd.DataFrame,
+                    interventions_gdf: gpd.GeoDataFrame,
+                    censustract_list: Union[List[str], None] = None,
+                    include_trends: bool=True,
+                    price_type: str = 'both',
+                    district: bool =True
+                    ) -> go.Figure:
+    """
+    Plot the timeseries of prices (rent, sale) for the given census tracts.
+    If more than one census tract, the mean is taken.
+    If include_trends is True, the trends are also plotted.
+
+    Args:
+      df (pd.DataFrame): The processed dataframe from idealista dataset 02 metricas de mercado.
+      interventions_gdf (gpd.GeoDataFrame): The information about interventions.
+      censustract_list (Union[List[str], None]): The list of census tracts.
+      include_trends (bool): Whether to include the trends.
+
+    Returns:
+      go.Figure: The figure.
+
+    """
+
+    interventions_dict = {'Urbanització c. Almogàvers (Badajoz -Roc Boronat).': 'Almogàvers',
+                      'Superilla de Poblenou': 'Superilla Poblenou',
+                      'Eixos Verds Eixample ': 'Eixample',
+                      'Supermanzana EJE VERDE (Consell de cent, Rocafort, Conde Borrell y Girona)': 'Superilla EixVerd',
+                      'Eixos Verds LOT 4: Consell de Cent (Aribau - Rambla Catalunya)': 'LOT 4',
+                      'Eje verde de la calle de Girona entre la calle de la Diputació y la Gran Via de les Corts Catalanes': 'EixVerd Girona',
+                      'Urbanización de tramos de las calles de Puigcerdà, Cristòbal de Moura i Veneçuela ': 'Urbanització PCV',
+                      'Supermanzana EJE VERDE Consejo de Ciento con Rocafort, Conde Borrell, Enric Granados y Girona': 'Consell de Cent',
+                      'Eixos Verds LOT 2: Borrell (Aragó - Diputació) + Consell de Cent (Calàbria - Urgell) + Cruïlla': 'LOT 2',
+                      'Eixos Verds LOT 1: ': 'LOT 1',
+                      'Eix verd Sant Antoni': 'Sant Antoni'}
+
+    df['district'] = df['CENSUSTRACT'].astype(str).str[4:6]
+    df_census = get_timeseries_of_census_tracts(df, censustract_list)
+
+    #print("df_census", df_census)
+    if df_census is None:
+        raise ValueError("funtion get_timeseries_of_census_tracts returned None")
+
+
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+
+    fig.add_trace(
+        go.Scatter(x=df_census["sale"].index, y=df_census["sale"].values, name="Average Buy"),
+        secondary_y=False,
+    )
+
+    fig.add_trace(
+        go.Scatter(x=df_census["rent"].index, y=df_census["rent"].values, name="Average Rent"),
+        secondary_y=True,
+    )
+
+    if include_trends:
+        trend_sale = get_trend_of_timeseries(df_census["sale"])
+        trend_rent = get_trend_of_timeseries(df_census["rent"])
+
+        fig.add_trace(
+            go.Scatter(x=trend_sale.index, y=trend_sale.values, name="Trend Buy"),
+            secondary_y=False,
+        )
+        fig.add_trace(
+            go.Scatter(x=trend_rent.index, y=trend_rent.values, name="Trend Rent"),
+            secondary_y=True,
+        )
+        if district == True:
+
+            df_districts = df[df.district.isin(interventions_gdf.DISTRITO)]
+            df_districts_list = get_timeseries_of_census_tracts(df_districts, censustract_list)
+
+            trend_sale_district = get_trend_of_timeseries(df_districts_list["sale"])
+            trend_rent_district = get_trend_of_timeseries(df_districts_list["rent"])
+            fig.add_trace(
+                go.Scatter(x=trend_sale_district.index, y=trend_sale_district.values, name="District buy",line=dict(color='#C1A2CA')),
+                secondary_y=False,
+            )
+            fig.add_trace(
+                go.Scatter(x=trend_rent_district.index, y=trend_rent_district.values, name="District rent", line=dict(color='#C1A2CA')),
+                secondary_y=True,
+            )
+
+
+    # Ensure CENSUSTRACT values in interventions_gdf are strings with 10 digits
+    interventions_gdf["CENSUSTRACT"] = interventions_gdf["CENSUSTRACT"].astype(int).astype(str).str.zfill(10)
+
+    # Ensure the census tract list values are also 10 digits
+    censustract_list = [str(ct).zfill(10) for ct in censustract_list]
+
+    # Debugging print
+    #print("CENSUSTRACT values in interventions_gdf:", interventions_gdf["CENSUSTRACT"].unique())
+    #print("Censustract list provided:", censustract_list)
+    #print(interventions_gdf["CENSUSTRACT"].values)
+
+    if any(census_tract in interventions_gdf["CENSUSTRACT"].values for census_tract in censustract_list):
+        # Prepare data for merging intervals
+
+        intervals = []
+        # Ensure CENSUSTRACT values in interventions_gdf are strings with 10 digits
+        interventions_gdf["CENSUSTRACT"] = interventions_gdf["CENSUSTRACT"].astype(str).str.zfill(10)
+
+        # Ensure the census tract list values are also 10 digits
+        censustract_list = [str(ct).zfill(10) for ct in censustract_list]
+
+        # Filter censustract_list to include only those that are present in the DataFrame
+        valid_censustracts = [ct for ct in censustract_list if ct in interventions_gdf["CENSUSTRACT"].values]
+
+        # Now proceed with only the valid census tracts
+        intervals = []
+        #print(interventions_gdf.set_index("CENSUSTRACT").loc[valid_censustracts])
+
+        for row, intervention in interventions_gdf.set_index("CENSUSTRACT").loc[valid_censustracts].iterrows():
+            # Debugging print
+            #print(f"Processing intervention: {intervention}")
+
+            data_inici = pd.to_datetime(intervention["DATA_INICI"].strftime('%Y-%m-%d'))
+            data_fi = pd.to_datetime(intervention["DATA_FI_REAL"].strftime('%Y-%m-%d'))
+            intervals.append((data_inici, data_fi, {interventions_dict[intervention["TITOL_WO"]]}))
+
+        # Merge overlapping intervals
+        merged_intervals = merge_intervals(intervals)
+
+        # Draw rectangles for each merged interval
+        for start, end, interventions in merged_intervals:
+            # Create annotation text with line breaks
+            annotation_text = '<br>'.join(sorted(interventions))
+
+            fig.add_vrect(
+                x0=start,
+                x1=end,
+                annotation_text=annotation_text,
+                annotation_position="bottom right",
+                fillcolor="green",
+                opacity=0.25,
+                line_width=0
+            )
+                # Price type filtering
+    if price_type == 'sale':
+        fig.data = [trace for trace in fig.data if 'buy' in trace.name]
+    elif price_type == 'rent':
+        fig.data = [trace for trace in fig.data if 'rent' in trace.name]
 
     fig.update_layout(
         title_text="Average Rent/Buy prices for all the Census tracts"

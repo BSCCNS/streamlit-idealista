@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import shapely
 import streamlit as st
 from folium.plugins import Draw
+from loguru import logger
 from PIL import Image
 from plotly.subplots import make_subplots
 from prophet import Prophet
@@ -19,6 +20,7 @@ from shapely.ops import transform
 from streamlit_folium import st_folium
 from upath import UPath
 
+import streamlit_idealista.functions as fc
 from streamlit_idealista.config import (
     INPUT_DATA_PATH,
     INPUT_DTYPES_COUPLED_JSON_PATH,
@@ -29,7 +31,7 @@ from streamlit_idealista.config import (
     PROJ_ROOT,
 )
 
-im = Image.open("assets/favicon.png")
+im = Image.open(PROJ_ROOT / "streamlit_idealista/assets/favicon.png")
 
 st.set_page_config(
 
@@ -189,7 +191,7 @@ with right:
 
     try:
     # Create and display the chart
-        chart = fc.plot_timeseries(
+        chart = fc.plot_timeseries_deprecated(
             processed_df,
             interventions_gdf,
             my_censustracts,
@@ -201,4 +203,4 @@ with right:
 
     except Exception as e:
     # Silently pass or log the error if needed
-        pass
+        logger.info(f"Error: {e}")
