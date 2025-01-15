@@ -217,7 +217,7 @@ with left:
                 "weight": 1,
                 "fillOpacity": 0.3,
             },
-        ).add_to(m)    
+        ).add_to(geojson_layer)    
 
     # Add geometries to the map
     for _, row in interventions_gdf.iterrows():
@@ -302,7 +302,7 @@ with left:
     
 with right:
     # Price type filter
-    price_type = st.radio("Price Type", ['Both', 'Sale', 'Rent'], horizontal=True)
+    price_type = 'Both'
 
     try:
         if st.session_state["drawn_geometries"]:

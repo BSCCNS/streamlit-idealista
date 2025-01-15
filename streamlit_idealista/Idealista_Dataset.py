@@ -178,7 +178,7 @@ with left:
 with right:
 
     # Price type filter
-    price_type = st.radio("Price Type", ['Both', 'Sale', 'Rent'], horizontal=True)
+    price_type = 'Both'
 
     try:
     # Create and display the chart
