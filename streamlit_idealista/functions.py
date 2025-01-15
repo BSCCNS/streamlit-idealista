@@ -205,6 +205,9 @@ def plot_timeseries(df: pd.DataFrame,
                     price_type: str = 'both',
                     district: bool =True,
                     district_gdf: gpd.GeoDataFrame = None,
+                    control_polygon: bool = False,
+                    control_gdf: gpd.GeoDataFrame = None
+
                     ) -> go.Figure:
     
     """
@@ -271,6 +274,25 @@ def plot_timeseries(df: pd.DataFrame,
                        line=dict(color='#C1A2CA')),
             secondary_y=True,
         )
+    
+    if control_polygon == True:
+        census_district = list(district_gdf['CENSUSTRACT'].astype(int).astype(str))
+        control_gdf_census = get_timeseries_of_census_tracts(control_gdf, control_gdf['CENSUSTRACT'])
+
+        fig.add_trace(
+            go.Scatter(x=control_gdf_census["sale"].index, 
+                       y=control_gdf_census["sale"].values, 
+                       name="Control buy", 
+                       line=dict(color='#C1A2CA')),
+            secondary_y=False,
+        )
+        fig.add_trace(
+            go.Scatter(x=control_gdf_census["rent"].index, 
+                       y=control_gdf_census["rent"].values, 
+                       name="Control rent", 
+                       line=dict(color='#C1A2CA')),
+            secondary_y=True,
+        )
 
     if include_trends:
         trend_sale = get_trend_of_timeseries(df_census["sale"])
@@ -303,6 +325,24 @@ def plot_timeseries(df: pd.DataFrame,
                 go.Scatter(x=trend_rent_district.index, 
                            y=trend_rent_district.values, 
                            name="Trend district rent"),
+                secondary_y=True,
+            )
+        
+
+        if control_polygon == True:
+            trend_sale_control = get_trend_of_timeseries(control_gdf_census["sale"])
+            trend_rent_control = get_trend_of_timeseries(control_gdf_census["rent"])
+
+            fig.add_trace(
+            go.Scatter(x=trend_sale_control.index, 
+                       y=trend_sale_control.values, 
+                       name="Trend control buy"),
+            secondary_y=False,
+            )
+            fig.add_trace(
+                go.Scatter(x=trend_rent_control.index, 
+                           y=trend_rent_control.values, 
+                           name="Trend control rent"),
                 secondary_y=True,
             )
 
