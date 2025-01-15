@@ -139,17 +139,25 @@ left, right = st.columns([1,1])  # You can adjust these numbers to your preferen
 interventions_gdf = interventions_gdf.to_crs('EPSG:4326')
 gdf_ine = gdf_ine.to_crs("EPSG:4326")
 
+# Initialize the toggle in session state
+if 'put_new_map_boolean' not in st.session_state:
+    st.session_state['put_new_map_boolean'] = False
+
+if "drawn_geometries" not in st.session_state:
+    st.session_state["drawn_geometries"] = []
+
 with left:
     st.subheader("Map")
-
     geometry_selection = st.multiselect(
         "Select Urban Intervention", 
-        options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
+        options=list(interventions_gdf["TITOL_WO"].unique()),
         help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
     )
 
     # Create the base map
     m = folium.Map(location=[41.40463, 2.17924], zoom_start=13, tiles="cartodbpositron")
+
+
     draw = Draw(
         draw_options={
             'polyline': False,
@@ -161,33 +169,62 @@ with left:
         edit_options={'edit': True},
     )
     draw.add_to(m)
-    # Create a GeoJSON layer for all geometries
+    
     geojson_layer = folium.FeatureGroup(name="Show Urban Interventions")
-
-    # selected interventions
+    
+    # Filter interventions based on selection
     filtered_interventions_gdf = interventions_gdf[interventions_gdf["TITOL_WO"].isin(geometry_selection)].copy()
-
-    # impacted area
-    impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine) 
-
-    # district of the selected intervention
+    
+    # Compute impacted and district areas
+    impacted_gdf = fc.get_impacted_gdf(filtered_interventions_gdf, gdf_ine)
     filtered_interventions_gdf['md'] = filtered_interventions_gdf['CENSUSTRACT'].astype(str).str[0:7].astype(int)
     gdf_ine['md'] = gdf_ine['CENSUSTRACT'].astype(str).str[0:6].astype(int)
+    district_gdf = gdf_ine[gdf_ine['md'].isin(filtered_interventions_gdf['md']) & 
+                           ~gdf_ine['CENSUSTRACT'].astype(int).isin(filtered_interventions_gdf['CENSUSTRACT'].astype(str).astype(int))]
+    
+    if st.session_state["drawn_geometries"]:
 
-    # to use district as control group, remove intervened censustracts
-    c1 = gdf_ine['md'].isin(filtered_interventions_gdf['md'])
-    c2 = ~gdf_ine['CENSUSTRACT'].astype(int).isin(filtered_interventions_gdf['CENSUSTRACT'].astype(str).astype(int))
-    district_gdf = gdf_ine[c1 & c2]
+        for geom in st.session_state["drawn_geometries"]:
+            folium.GeoJson(
+                geom,
+                style_function=lambda x: {
+                    "fillColor": "green",
+                    "color": "green",
+                    "weight": 1,
+                    "fillOpacity": 0.3,
+                },
+            ).add_to(m)
+        
 
+    geometry_collection = fc.GeometryCollection(st.session_state["drawn_geometries"])
 
+    # Convert drawn geometries to GeoDataFrame with the correct CRS
+    geometry_gdf = gpd.GeoDataFrame(
+        {'geometry': [geometry_collection]},
+        crs="EPSG:25830"  # Adjust if needed
+    )
+    geometry_gdf = geometry_gdf.to_crs(gdf_ine.crs)
 
+    # Get impacted census tracts
+    my_censustracts = fc.get_impacted_gdf(geometry_gdf, gdf_ine)
 
-    # Add geometries to the layer
+    for _, row in my_censustracts.iterrows():
+        folium.GeoJson(
+            row["geometry"],
+            style_function=lambda x: {
+                "fillColor": "green",
+                "color": "green",
+                "weight": 1,
+                "fillOpacity": 0.3,
+            },
+        ).add_to(m)    
+
+    # Add geometries to the map
     for _, row in interventions_gdf.iterrows():
         folium.GeoJson(
             row["geometry"],
             name=row["TITOL_WO"],
-            tooltip = row["TITOL_WO"],
+            tooltip=row["TITOL_WO"],
             style_function=lambda x: {
                 "fillColor": "grey",
                 "color": "grey",
@@ -200,7 +237,7 @@ with left:
         folium.GeoJson(
             row["geometry"],
             name=row["TITOL_WO"],
-            tooltip = row["TITOL_WO"],
+            tooltip=row["TITOL_WO"],
             style_function=lambda x: {
                 "fillColor": "red",
                 "color": "red",
@@ -220,30 +257,7 @@ with left:
             },
         ).add_to(geojson_layer)
 
-    for _, row in district_gdf.iterrows():
-        folium.GeoJson(
-            row["geometry"],
-            style_function=lambda x: {
-                "fillColor": "green",
-                "color": "green",
-                "weight": 1,
-                "fillOpacity": 0.3,
-            },
-        ).add_to(geojson_layer)
-
-    
-    
-
-    # Add the GeoJSON layer to the map
     geojson_layer.add_to(m)
-
-
-
-
-    # Add layer control to toggle visibility of geometries
-    
-    # Initialize the Draw plugin
-
     folium.LayerControl(collapsed=False).add_to(m)
     folium.plugins.Fullscreen(
         position="bottomleft",
@@ -251,63 +265,57 @@ with left:
         title_cancel="Exit me",
         force_separate_button=True,
     ).add_to(m)
-    # Display the map in the Streamlit app
-    output = st_folium(m, width=600, height=500)
+
+    # Display the appropriate map based on session state
+    if st.session_state['put_new_map_boolean']:
+        output = st_folium(m, width=600, height=500, key='new_map')
+    else:
+        output = st_folium(m, width=600, height=500, key='old_map')
 
     # Process and display the drawn geometries
     geometry_collection = None  # Define a default value
-
     if output and output["all_drawings"]:
         drawn_geometries = [fc.transform_geometry(geo_json['geometry']) for geo_json in output["all_drawings"]]
         geometry_collection = fc.GeometryCollection(drawn_geometries)
+
         st.write("Captured Geometries in UTM (EPSG:25831):")
         st.write(geometry_collection)
-    else:
-        st.write("No geometries drawn yet.")
-        # Handle census tracts based on drawn geometries
-    if geometry_collection:
-        print(gdf_ine)
-        print(gdf_ine.crs)
+
+        # Convert drawn geometries to GeoDataFrame with the correct CRS
         geometry_gdf = gpd.GeoDataFrame(
             {'geometry': [geometry_collection]},
-            crs="EPSG:25830"  # Assuming gdf_ine has the correct CRS (EPSG:4326)
+            crs="EPSG:25830"  # Adjust if needed
         )
         geometry_gdf = geometry_gdf.to_crs(gdf_ine.crs)
-        print(geometry_gdf)
 
+        # Get impacted census tracts
         my_censustracts = fc.get_impacted_gdf(geometry_gdf, gdf_ine)
-        print("llista", my_censustracts)
-        print("dataframe", processed_df['CENSUSTRACT'])
 
+        st.session_state["drawn_geometries"] = drawn_geometries
+        
+        st.session_state['put_new_map_boolean'] = not st.session_state['put_new_map_boolean']  # Toggle the map state
+        st.rerun()  # Force rerun to refresh with the new map
 
-
-     
     else:
         st.warning("No geometry has been drawn, so no census tracts can be impacted.")
         my_censustracts = []
-
-
-
-
     
 with right:
     # Price type filter
     price_type = st.radio("Price Type", ['Both', 'Sale', 'Rent'], horizontal=True)
 
     try:
-        if geometry_collection:
-            print(gdf_ine)
-            print(gdf_ine.crs)
+        if st.session_state["drawn_geometries"]:
+
+            geometry_collection = fc.GeometryCollection(st.session_state["drawn_geometries"])
             geometry_gdf = gpd.GeoDataFrame(
                 {'geometry': [geometry_collection]},
                 crs="EPSG:25830"  # Assuming gdf_ine has the correct CRS (EPSG:4326)
             )
-            geometry_gdf = geometry_gdf.to_crs(gdf_ine.crs)
-            print(geometry_gdf)
 
+            geometry_gdf = geometry_gdf.to_crs(gdf_ine.crs)
             my_censustracts = fc.get_impacted_gdf(geometry_gdf, gdf_ine)
-            print("llista", my_censustracts)
-            print("dataframe", processed_df['CENSUSTRACT'])
+
 
             processed_df['CENSUSTRACT'] = processed_df['CENSUSTRACT'].astype(str)
             my_censustracts['CENSUSTRACT'] = my_censustracts['CENSUSTRACT'].astype(str)
