@@ -35,6 +35,15 @@ INPUT_INE_CENSUSTRACT_GEOJSON = PROCESSED_DATA_DIR / "censustracts_geometries.ge
 SAVE_OUTPUT = False
 OUTPUT_DATA_PATH = PROCESSED_DATA_DIR / "full/"
 
+# Plotting Parameters
+
+BUY_COLOR =
+RENT_COLOR =
+CONTROL_COLOR =
+INTERVENTION_COLOR =
+INTERSECT_COLOR =
+TREND_LINE =
+
 # Log the important paths
 logger.info(f"Input data path: {INPUT_DATA_PATH}")
 logger.info(f"Input JSON path: {INPUT_DTYPES_COUPLED_JSON_PATH}")

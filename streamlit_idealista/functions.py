@@ -20,6 +20,7 @@ from shapely.ops import transform
 from streamlit_folium import st_folium
 
 
+
 def transform_geometry(geometry):
     """
     Transform geometry from EPSG:4326 to EPSG:25831.
@@ -206,7 +207,12 @@ def plot_timeseries(df: pd.DataFrame,
                     district: bool =True,
                     district_gdf: gpd.GeoDataFrame = None,
                     control_polygon: bool = False,
-                    control_gdf: gpd.GeoDataFrame = None
+                    control_gdf: gpd.GeoDataFrame = None,
+                    SALE_COLOR: str =  '#FBBC05',
+                    RENT_COLOR: str =  '#45B905',
+                    CONTROL_SALE: str = '#626262',
+                    CONTROL_COLOR: str = '#4D779E',
+                    INTERVENTION_COLOR: str = '#EE8A82'
 
                     ) -> go.Figure:
     
@@ -247,12 +253,18 @@ def plot_timeseries(df: pd.DataFrame,
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     fig.add_trace(
-        go.Scatter(x=df_census["sale"].index, y=df_census["sale"].values, name="Average buy"),
+        go.Scatter(x=df_census["sale"].index,
+                   y=df_census["sale"].values, 
+                   name="Average buy",
+                   line=dict(color= SALE_COLOR)),
         secondary_y=False,
     )
 
     fig.add_trace(
-        go.Scatter(x=df_census["rent"].index, y=df_census["rent"].values, name="Average rent"),
+        go.Scatter(x=df_census["rent"].index,
+                   y=df_census["rent"].values,
+                   name="Average rent",
+                   line=dict(color= RENT_COLOR)),
         secondary_y=True,
     )
 
@@ -264,14 +276,14 @@ def plot_timeseries(df: pd.DataFrame,
             go.Scatter(x=df_district_census["sale"].index, 
                        y=df_district_census["sale"].values, 
                        name="District buy", 
-                       line=dict(color='#C1A2CA')),
+                       line=dict(color= CONTROL_SALE)),
             secondary_y=False,
         )
         fig.add_trace(
             go.Scatter(x=df_district_census["rent"].index, 
                        y=df_district_census["rent"].values, 
                        name="District rent", 
-                       line=dict(color='#C1A2CA')),
+                       line=dict(color= CONTROL_COLOR)),
             secondary_y=True,
         )
     
@@ -283,14 +295,14 @@ def plot_timeseries(df: pd.DataFrame,
             go.Scatter(x=control_gdf_census["sale"].index, 
                        y=control_gdf_census["sale"].values, 
                        name="Control buy", 
-                       line=dict(color='#C1A2CA')),
+                       line=dict(color=CONTROL_SALE)),
             secondary_y=False,
         )
         fig.add_trace(
             go.Scatter(x=control_gdf_census["rent"].index, 
                        y=control_gdf_census["rent"].values, 
                        name="Control rent", 
-                       line=dict(color='#C1A2CA')),
+                       line=dict(color=CONTROL_COLOR)),
             secondary_y=True,
         )
 
@@ -301,13 +313,16 @@ def plot_timeseries(df: pd.DataFrame,
         fig.add_trace(
             go.Scatter(x=trend_sale.index, 
                        y=trend_sale.values, 
-                       name="Trend buy"),
+                       name="Trend buy",
+                       line=dict(color= SALE_COLOR, dash="dash")),
             secondary_y=False,
         )
         fig.add_trace(
             go.Scatter(x=trend_rent.index, 
                        y=trend_rent.values, 
-                       name="Trend rent"),
+                       name="Trend rent",
+                       line=dict(color= RENT_COLOR, dash="dash")),
+
             secondary_y=True,
         )
 
@@ -318,13 +333,15 @@ def plot_timeseries(df: pd.DataFrame,
             fig.add_trace(
             go.Scatter(x=trend_sale_district.index, 
                        y=trend_sale_district.values, 
-                       name="Trend district buy"),
+                       name="Trend district buy",
+                       line=dict(color= CONTROL_SALE, dash="dash")),
             secondary_y=False,
             )
             fig.add_trace(
                 go.Scatter(x=trend_rent_district.index, 
                            y=trend_rent_district.values, 
-                           name="Trend district rent"),
+                           name="Trend district rent",
+                           line=dict(color= CONTROL_COLOR, dash="dash")),
                 secondary_y=True,
             )
         
@@ -336,13 +353,15 @@ def plot_timeseries(df: pd.DataFrame,
             fig.add_trace(
             go.Scatter(x=trend_sale_control.index, 
                        y=trend_sale_control.values, 
-                       name="Trend control buy"),
+                       name="Trend control buy",
+                       line=dict(color= CONTROL_COLOR, dash="dash")),
             secondary_y=False,
             )
             fig.add_trace(
                 go.Scatter(x=trend_rent_control.index, 
                            y=trend_rent_control.values, 
-                           name="Trend control rent"),
+                           name="Trend control rent",
+                           line=dict(color= CONTROL_COLOR, dash="dash")),
                 secondary_y=True,
             )
 
@@ -395,7 +414,7 @@ def plot_timeseries(df: pd.DataFrame,
                 x1=end,
                 annotation_text=annotation_text,
                 annotation_position="bottom right",
-                fillcolor="green",
+                fillcolor=INTERVENTION_COLOR,
                 opacity=0.25,
                 line_width=0
             )
