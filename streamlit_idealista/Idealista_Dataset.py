@@ -27,6 +27,12 @@ from streamlit_idealista.config import (
     INPUT_SUPERILLES_INTERVENTIONS_GEOJSON,
     INPUT_TYPOLOGY_TYPES_PATH,
     PROJ_ROOT,
+    SALE_COLOR, 
+    RENT_COLOR,
+    CONTROL_COLOR,
+    INTERVENTION_COLOR,
+    INTERSECT_COLOR,
+    CONTROL_SALE
 )
 
 im = Image.open("assets/favicon.png")
@@ -134,7 +140,7 @@ def process_df(df: pd.DataFrame) -> pd.DataFrame:
         .drop(columns=("DESCRIPTION"))
     )
 processed_df = process_df(df)
-
+print(gdf_ine)
 #st.write(df)
 # Streamlit App Logic
 st.title("Map Drawing and Geometry Capture")
@@ -177,21 +183,62 @@ with left:
 
 with right:
 
+    
+
+    st.subheader("Time Series")
+
+
+    # Ensure 'CENSUSTRACT' in processed_df is a string
+    processed_df['CENSUSTRACT'] = processed_df['CENSUSTRACT'].astype(str).str.zfill(10)
+
+
+    # Ensure 'CENSUSTRACT' in gdf_ine is a string and properly zero-padded
+    gdf_ine['CENSUSTRACT'] = gdf_ine['CENSUSTRACT'].astype(str).str.zfill(10)
+
+    # Ensure my_censustracts is a list of zero-padded strings
+    my_censustracts = [str(ct).zfill(10) for ct in my_censustracts]
+
+    # Filter the processed_df based on the modified my_censustracts
+    filtered_df = processed_df[
+        processed_df['CENSUSTRACT'].str.zfill(10).isin(my_censustracts)
+    ]
+
+    # Perform the join to include the geometry column from gdf_ine
+    filtered_gdf = filtered_df.merge(
+        gdf_ine[['CENSUSTRACT', 'geometry']],  # Select only necessary columns from gdf_ine
+        on='CENSUSTRACT',                     # Join on 'CENSUSTRACT'
+        how='inner'                           # Inner join to include only matching rows
+    )
+
+    # Ensure the result is a GeoDataFrame
+
+    filtered_gdf = gpd.GeoDataFrame(filtered_gdf, geometry='geometry')
+
+
     # Price type filter
     price_type = 'Both'
-
+    print(my_censustracts)
+    print(filtered_gdf)
     try:
     # Create and display the chart
         chart = fc.plot_timeseries(
             processed_df,
             interventions_gdf,
-            my_censustracts,
+            filtered_gdf,
+            gdf_ine,
             price_type=price_type.lower(),
-            district = False
+            district = False,
+            control_polygon = False,
+            SALE_COLOR = SALE_COLOR,
+            RENT_COLOR = RENT_COLOR, 
+            CONTROL_SALE = CONTROL_SALE,
+            CONTROL_COLOR = CONTROL_COLOR, 
+            INTERVENTION_COLOR = INTERVENTION_COLOR
+
         )
         if chart is not None:
-            st.plotly_chart(chart, use_container_width=True)
+            st.plotly_chart(chart, use_container_width=True, height=600)
 
     except Exception as e:
-    # Silently pass or log the error if needed
+    
         pass

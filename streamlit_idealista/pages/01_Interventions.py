@@ -1,4 +1,4 @@
-from streamlit_idealista.config import   INPUT_DATA_PATH, INPUT_OPERATION_TYPES_PATH, INPUT_TYPOLOGY_TYPES_PATH, INPUT_OPERATION_TYPES_PATH, INPUT_SUPERILLES_INTERVENTIONS_GEOJSON, INPUT_DTYPES_COUPLED_JSON_PATH, INPUT_INE_CENSUSTRACT_GEOJSON 
+from streamlit_idealista.config import   INPUT_DATA_PATH, INPUT_OPERATION_TYPES_PATH, INPUT_TYPOLOGY_TYPES_PATH, INPUT_OPERATION_TYPES_PATH, INPUT_SUPERILLES_INTERVENTIONS_GEOJSON, INPUT_DTYPES_COUPLED_JSON_PATH, INPUT_INE_CENSUSTRACT_GEOJSON, SALE_COLOR, RENT_COLOR, CONTROL_COLOR, INTERVENTION_COLOR, INTERSECT_COLOR, CONTROL_SALE
 import functions as fc
 import streamlit as st
 import folium as folium
@@ -29,7 +29,7 @@ im = Image.open("assets/favicon.png")
    
 st.set_page_config(    
     
-    page_title="Idealista Dashboard",
+    page_title="Select an Intervention and Compare it with the District",
     page_icon= im,
     layout="wide",
     initial_sidebar_state="expanded",
@@ -54,19 +54,9 @@ st.markdown(
 
 
 # Dashboard Title
-st.title("Idealista Data Exploration Dashboard")
 
 # Dashboard Description
-st.markdown("""
-This dashboard allows users to explore data from the **Idealista dataset** effectively. 
-
-### How to Use:
-1. **Draw on the Map**: Select the area of interest by drawing a polygon on the map.
-2. **View Time Series**: Observe how rent and sale prices have changed over the years within your drawn area.
-3. **Analyze Interventions**: Check for any superblock interventions that may affect the property values in your selected area.
-
-This tool is designed to aid in decision-making and provide insights into the real estate landscape in the region.
-""")
+#st.description('Explore the effects of a selected urban intervention by comparing its impact on housing prices with the overall trends in the district. Visualize and analyze differences over time to assess intervention outcomes.')
 
 # load data
 @st.cache_data
@@ -132,21 +122,24 @@ def process_df(df: pd.DataFrame) -> pd.DataFrame:
 processed_df = process_df(df)
 
 # Streamlit App Logic
-st.title("Map Drawing and Geometry Capture")
+st.title("Select an Intervention and Compare it with the District")
+
+geometry_selection = st.multiselect(
+    "Select Urban Intervention", 
+    options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
+    help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
+)
 
 left, right = st.columns([1,1])  # You can adjust these numbers to your preference
 
 interventions_gdf = interventions_gdf.to_crs('EPSG:4326')
 gdf_ine = gdf_ine.to_crs("EPSG:4326")
 
+
+
 with left:
     st.subheader("Map")
 
-    geometry_selection = st.multiselect(
-        "Select Urban Intervention", 
-        options=list(interventions_gdf["TITOL_WO"].unique()),  # Replace 'TITOL_WO' with the column containing geometry names
-        help="Select one or more geometries to filter data. Leave empty to use the drawn geometry."
-    )
 
     # Create the base map
     m = folium.Map(location=[41.40463, 2.17924], zoom_start=13, tiles="cartodbpositron")
@@ -189,8 +182,8 @@ with left:
             name=row["TITOL_WO"],
             tooltip = row["TITOL_WO"],
             style_function=lambda x: {
-                "fillColor": "red",
-                "color": "red",
+                "fillColor": INTERVENTION_COLOR,
+                "color": INTERVENTION_COLOR,
                 "weight": 2,
                 "fillOpacity": 0.6,
             },
@@ -200,8 +193,8 @@ with left:
         folium.GeoJson(
             row["geometry"],
             style_function=lambda x: {
-                "fillColor": "blue",
-                "color": "blue",
+                "fillColor": INTERSECT_COLOR,
+                "color": INTERSECT_COLOR,
                 "weight": 1,
                 "fillOpacity": 0.4,
             },
@@ -211,8 +204,8 @@ with left:
         folium.GeoJson(
             row["geometry"],
             style_function=lambda x: {
-                "fillColor": "green",
-                "color": "green",
+                "fillColor": CONTROL_COLOR,
+                "color": CONTROL_COLOR,
                 "weight": 1,
                 "fillOpacity": 0.3,
             },
@@ -231,6 +224,8 @@ with left:
             'rectangle': False,
             'circle': False,
             'marker': True,
+            'color': CONTROL_COLOR
+
         },
         edit_options={'edit': True},
     )
@@ -264,6 +259,9 @@ with left:
 
     
 with right:
+
+    st.subheader("Time Series")
+
     # Price type filter
     price_type = 'Both'
 
@@ -281,6 +279,11 @@ with right:
                     price_type=price_type.lower(),
                     district = True,
                     district_gdf = district_gdf,
+                    SALE_COLOR = SALE_COLOR,
+                    RENT_COLOR = RENT_COLOR,
+                    CONTROL_SALE = CONTROL_SALE, 
+                    CONTROL_COLOR = CONTROL_COLOR, 
+                    INTERVENTION_COLOR = INTERVENTION_COLOR
                 )
 
                 if chart is not None:
@@ -297,6 +300,11 @@ with right:
                 price_type=price_type.lower(),
                 district = True,
                 district_gdf = district_gdf,
+                SALE_COLOR = SALE_COLOR,
+                RENT_COLOR = RENT_COLOR,
+                CONTROL_SALE = CONTROL_SALE, 
+                CONTROL_COLOR = CONTROL_COLOR, 
+                INTERVENTION_COLOR = INTERVENTION_COLOR
             )
 
             # Display the chart if available
