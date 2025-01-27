@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from typing import List, Optional, Union
+from upath import UPath
 
 import folium as folium
 import functions as fc
@@ -78,38 +79,44 @@ This dashboard allows users to explore data from the **Idealista dataset** effec
 This tool is designed to aid in decision-making and provide insights into the real estate landscape in the region.
 """)
 
+# load data
 @st.cache_data
-def load_dtypes(dtypes_path: Path) -> dict:
-    with open(dtypes_path, 'r') as f:
+def load_dtypes(_dtypes_path: UPath) -> dict:
+    with _dtypes_path.open("rb") as f:
         return json.load(f)
 dtypes_coupled_dict = load_dtypes(INPUT_DTYPES_COUPLED_JSON_PATH)
 
-# load data
 @st.cache_data
-def load_main_data(main_data_path: Path) -> pd.DataFrame:
-    return pd.read_csv( INPUT_DATA_PATH, sep = ';', dtype=dtypes_coupled_dict)
+def load_main_data(_main_data_path: UPath) -> pd.DataFrame:
+    with _main_data_path.open("rb") as f:
+        df = pd.read_csv(f, sep = ';', dtype=dtypes_coupled_dict, encoding="unicode_escape")
+    return df
 df = load_main_data(INPUT_DATA_PATH)
 
 @st.cache_data
-def load_censustract_geojson(censustract_geojson_path: Path) -> gpd.GeoDataFrame:
-    gdf_ine = gpd.read_file(censustract_geojson_path)
+def load_censustract_geojson(_censustract_geojson_path: UPath) -> gpd.GeoDataFrame:
+    with _censustract_geojson_path.open("rb") as f:
+        gdf_ine = gpd.read_file(f)
     gdf_ine['CENSUSTRACT'] = gdf_ine['CENSUSTRACT'].astype(int).astype(str)
     return gdf_ine
 gdf_ine = load_censustract_geojson(INPUT_INE_CENSUSTRACT_GEOJSON)
 
 @st.cache_data
-def load_operation_types(operation_types_path: Path) -> pd.DataFrame:
-    return pd.read_csv(operation_types_path, sep=";", dtype=dtypes_coupled_dict)
+def load_operation_types(_operation_types_path: UPath) -> pd.DataFrame:
+    with _operation_types_path.open("rb") as f:
+        return pd.read_csv(f, sep=";", dtype=dtypes_coupled_dict, encoding="unicode_escape")
 operation_types_df = load_operation_types(INPUT_OPERATION_TYPES_PATH)
 
 @st.cache_data
-def load_typology_types(typology_types_path: Path) -> pd.DataFrame:
-    return pd.read_csv( INPUT_TYPOLOGY_TYPES_PATH, sep=";", dtype=dtypes_coupled_dict)
+def load_typology_types(_typology_types_path: UPath) -> pd.DataFrame:
+    with _typology_types_path.open("rb") as f:
+        return pd.read_csv(f, sep=";", dtype=dtypes_coupled_dict)
 typology_types_df = load_typology_types(INPUT_TYPOLOGY_TYPES_PATH)
 
 @st.cache_data
-def load_interventions(interventions_path: Path) -> gpd.GeoDataFrame:
-    return gpd.read_file(interventions_path)
+def load_interventions(_interventions_path: UPath) -> gpd.GeoDataFrame:
+    with _interventions_path.open("rb") as f:
+        return gpd.read_file(f)
 interventions_gdf =  load_interventions(INPUT_SUPERILLES_INTERVENTIONS_GEOJSON)
 
 @st.cache_data

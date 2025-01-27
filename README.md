@@ -6,10 +6,19 @@
 
 This is the source code for the interactive dashboard with the idealista data.
 
+## How to install cloud envirorment
+
+```
+uv venv streamlit-cloud --python 3.10.12
+source streamlit-cloud/bin/activate
+pip install -r requirements.txt
+```
+
 ## How to run the app
 
 ```console
-streamlit run streamlit_idealista/streamlit_app.py
+cd streamlit_idealista
+streamlit run streamlit_app.py
 ```
 
 ## Project Organization
