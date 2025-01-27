@@ -35,8 +35,8 @@ from streamlit_idealista.config import (
     INTERSECT_COLOR,
     CONTROL_SALE
 )
-
-im = Image.open("assets/favicon.png")
+favicon = PROJ_ROOT / "streamlit_idealista/assets/favicon.png"
+im = Image.open(favicon)
 
 st.set_page_config(
 

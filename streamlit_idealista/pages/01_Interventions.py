@@ -1,4 +1,4 @@
-from streamlit_idealista.config import   INPUT_DATA_PATH, INPUT_OPERATION_TYPES_PATH, INPUT_TYPOLOGY_TYPES_PATH, INPUT_OPERATION_TYPES_PATH, INPUT_SUPERILLES_INTERVENTIONS_GEOJSON, INPUT_DTYPES_COUPLED_JSON_PATH, INPUT_INE_CENSUSTRACT_GEOJSON, SALE_COLOR, RENT_COLOR, CONTROL_COLOR, INTERVENTION_COLOR, INTERSECT_COLOR, CONTROL_SALE
+from streamlit_idealista.config import   INPUT_DATA_PATH, PROJ_ROOT, INPUT_OPERATION_TYPES_PATH, INPUT_TYPOLOGY_TYPES_PATH, INPUT_OPERATION_TYPES_PATH, INPUT_SUPERILLES_INTERVENTIONS_GEOJSON, INPUT_DTYPES_COUPLED_JSON_PATH, INPUT_INE_CENSUSTRACT_GEOJSON, SALE_COLOR, RENT_COLOR, CONTROL_COLOR, INTERVENTION_COLOR, INTERSECT_COLOR, CONTROL_SALE
 import functions as fc
 from upath import UPath
 
@@ -27,11 +27,12 @@ from PIL import Image
 import pyproj
 pyproj.network.set_network_enabled(False)
 
-im = Image.open("assets/favicon.png")
-   
+favicon = PROJ_ROOT / "streamlit_idealista/assets/favicon.png"
+im = Image.open(favicon)
+
 st.set_page_config(    
     
-    page_title="Select an Intervention and Compare it with the District",
+    page_title="Select an Intervention and Compare it with th´e District",
     page_icon= im,
     layout="wide",
     initial_sidebar_state="expanded",
