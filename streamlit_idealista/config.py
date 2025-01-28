@@ -1,4 +1,7 @@
 from pathlib import Path
+from upath import UPath
+import os as os
+
 from dotenv import load_dotenv
 from loguru import logger
 import json
@@ -6,11 +9,23 @@ import json
 # Load environment variables from .env file if it exists
 load_dotenv()
 
+# cloud
+DATA_DIR_FSSPEC_BASE_URL = os.getenv("DATA_DIR_FSSPEC_BASE_URL", "")
+# DATA_DIR_FSSPEC_USER
+# DATA_DIR_FSSPEC_PASS  # (user, password) is not stored to avoid exposure.
+
+
 # Paths
 PROJ_ROOT = Path(__file__).resolve().parents[1]
 logger.info(f"PROJ_ROOT path is: {PROJ_ROOT}")
 
-DATA_DIR = PROJ_ROOT / "data"
+DATA_DIR = UPath(os.getenv("DATA_DIR_FSSPEC_URI", f"""file://{PROJ_ROOT / "data"}"""),
+                 base_url=DATA_DIR_FSSPEC_BASE_URL,
+                 auth=(os.getenv("DATA_DIR_FSSPEC_USER", ""),
+                       os.getenv("DATA_DIR_FSSPEC_PASS", "")
+                      ),
+                )
+
 RAW_DATA_DIR = DATA_DIR / "raw"
 INTERIM_DATA_DIR = DATA_DIR / "interim"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
@@ -49,10 +64,6 @@ TREND_LINE = 'dot'
 logger.info(f"Input data path: {INPUT_DATA_PATH}")
 logger.info(f"Input JSON path: {INPUT_DTYPES_COUPLED_JSON_PATH}")
 logger.info(f"Input superilles interventions GeoJSON: {INPUT_SUPERILLES_INTERVENTIONS_GEOJSON}")
-
-# Load dtypes-coupled JSON
-with open(INPUT_DTYPES_COUPLED_JSON_PATH, 'r') as f:
-    dtypes_coupled_dict = json.load(f)
 
 # If tqdm is installed, configure loguru with tqdm.write
 # https://github.com/Delgan/loguru/issues/135
